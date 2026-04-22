@@ -18,7 +18,7 @@ The closest analogy is how EditorConfig or Prettier manage editor/formatter conf
 
 ### How popular is this package manager?
 
-- **~2 000 GitHub stars** and growing rapidly since its release in late 2025.
+- **~2 000 GitHub stars** (as of April 2026) and growing rapidly since its release in late 2025. See [live count](https://github.com/microsoft/apm).
 - Published by **Microsoft** as an open-source project.
 - Targets the fast-growing AI coding-agent ecosystem (GitHub Copilot, Claude Code, Cursor, OpenCode, Codex).
 - Installable via `pip install apm-cli`, Homebrew, and platform-specific installers.
@@ -59,6 +59,8 @@ Both files live at the project root. The manifest filename is always exactly `ap
 ```
 ["(^|/)apm\\.yml$"]
 ```
+
+Note: the lock file `apm.lock.yaml` lives alongside `apm.yml` and should be treated as an artifact that Renovate updates (see [Artifacts](#artifacts)), but does not need to be in `managerFilePatterns` itself.
 
 ### Do many users need to extend the [`managerFilePatterns`](../usage/configuration-options.md#managerfilepatterns) pattern for custom file names?
 
@@ -158,6 +160,8 @@ dependencies:
       alias: acme-sec
 ```
 
+In object form, `ref` carries the version (equivalent to the `#ref` fragment in string form). Renovate should update the `ref` value the same way it updates the `#v1.0.0` fragment in string-form dependencies (e.g. `ref: v2.0` → `ref: v2.1.0`).
+
 **MCP dependencies** (`dependencies.mcp` / `devDependencies.mcp`) reference MCP servers. These are either registry-backed identifiers or self-defined server configs. They typically do not carry semver versions and are less relevant for Renovate initially.
 
 ### Describe which types of dependencies above are supported and which will be implemented in future
@@ -251,15 +255,25 @@ The lock file is strongly recommended and should be committed to version control
 
 ### If lockfiles or checksums are used: what tool and exact commands should Renovate use to update one (or more) package versions in a dependency file?
 
+**Tooling prerequisite:** Renovate needs `apm-cli` available in the update environment. Install via:
+
+```bash
+pip install apm-cli
+```
+
+Then, after Renovate modifies the version ref in `apm.yml`:
+
 ```bash
 apm install
 ```
 
-After Renovate modifies the version ref in `apm.yml`, running `apm install` will re-resolve affected dependencies and update `apm.lock.yaml`. For a full re-resolve of all dependencies:
+This re-resolves affected dependencies and updates `apm.lock.yaml`. For a full re-resolve of all dependencies:
 
 ```bash
 apm install --update
 ```
+
+Note: `apm install` writes cloned repositories to `apm_modules/` (typically gitignored). Renovate should only commit changes to `apm.yml` and `apm.lock.yaml`, not the `apm_modules/` directory.
 
 ### Package manager cache
 
