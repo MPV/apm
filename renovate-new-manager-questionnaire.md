@@ -32,6 +32,7 @@ There is no other widely adopted package manager for AI agent context. The space
 
 - **Rules files / CLAUDE.md / .cursorrules** — manual, per-project configuration files; no dependency resolution, versioning, or sharing.
 - **Copilot Extensions / MCP registries** — provide runtime tool servers, not declarative dependency management for agent instructions and skills.
+- **`.well-known` Agent Skills Discovery** ([agentskills/agentskills#254](https://github.com/agentskills/agentskills/pull/254)) — an emerging spec for HTTP-based skill discovery via `/.well-known/agent-skills/index.json` (RFC 8615). Distributes skills as `SKILL.md` files or archives with SHA-256 digests. This is a discovery/distribution mechanism, not a package manager — it has no dependency resolution, lock files, or transitive deps. APM already supports `SKILL.md` as a dependency type and could consume `.well-known` endpoints in the future.
 
 APM is the first tool to treat agent context as versioned, shareable, lockable packages with transitive dependency resolution.
 
@@ -162,6 +163,8 @@ dependencies:
 
 In object form, `ref` carries the version (equivalent to the `#ref` fragment in string form). Renovate should update the `ref` value the same way it updates the `#v1.0.0` fragment in string-form dependencies (e.g. `ref: v2.0` → `ref: v2.1.0`).
 
+**Marketplace-resolved dependencies:** APM has a marketplace system where curated plugin indexes (`marketplace.json` in GitHub repos) map plugin names to git sources. Users install via `apm install code-review@acme-plugins` on the CLI, but the resolved git URL is what gets written to `apm.yml` — Renovate will see standard `owner/repo#ref` entries, not marketplace syntax. The lock file carries provenance metadata (`discovered_via`, `marketplace_plugin_name`) but `apm install` manages those fields automatically.
+
 **MCP dependencies** (`dependencies.mcp` / `devDependencies.mcp`) reference MCP servers. These are either registry-backed identifiers or self-defined server configs. They typically do not carry semver versions and are less relevant for Renovate initially.
 
 ### Describe which types of dependencies above are supported and which will be implemented in future
@@ -174,6 +177,7 @@ In object form, `ref` carries the version (equivalent to the `#ref` fragment in 
 
 - `dependencies.mcp` — MCP server registry references. These may gain versioning as the MCP ecosystem matures.
 - Dependencies pinned to branch names or commit SHAs — these could be updated to the latest commit on that branch, though the value proposition is lower.
+- **URL-based package installation** ([microsoft/apm#692](https://github.com/microsoft/apm/issues/692), design phase) — would allow `apm install https://example.com/packages/my-agent.tar.gz` and introduce digest-pinned URL dependencies (`#sha256:<hex>`). If shipped, this would be a new dependency source type requiring its own lookup strategy. Not yet implemented.
 
 ## Versioning
 
@@ -328,4 +332,8 @@ This resolves all dependencies fresh and produces a new `apm.lock.yaml`.
 
 4. **Enterprise policy** — organisations can define `apm-policy.yml` files that restrict allowed dependency sources, enforce lock file presence, and require content-hash verification. Renovate-generated PRs would need to pass these policy checks, but that happens naturally via `apm install` and CI.
 
-5. **Growing ecosystem** — APM is under active development by Microsoft. The manifest schema and lock file format are versioned (`lockfile_version: "1"`) and designed for forward compatibility. The project has ~2 000 GitHub stars as of April 2026 and is the recommended way to manage agent context for GitHub Copilot Coding Agent.
+5. **Marketplace system** — APM supports curated plugin marketplaces (`marketplace.json` indexes hosted as GitHub repos). Users can install plugins via `apm install NAME@MARKETPLACE` syntax. However, marketplace references are resolved to standard `owner/repo#ref` entries at install time and written to `apm.yml` in that canonical form. Renovate does not need to parse marketplace syntax — it will only encounter the resolved git-based entries.
+
+6. **Emerging `.well-known` skill discovery and URL-based dependencies** — The [Agent Skills Discovery spec](https://github.com/agentskills/agentskills/pull/254) proposes HTTP-based skill distribution at `/.well-known/agent-skills/index.json` (skills as `SKILL.md` files or archives with SHA-256 digests). APM tracks this via [microsoft/apm#554](https://github.com/microsoft/apm/issues/554), but `.well-known` support is explicitly deferred pending upstream spec stability (still draft v0.2.0). Related in-flight work: [#676](https://github.com/microsoft/apm/issues/676) (PR [#691](https://github.com/microsoft/apm/pull/691)) adds URL-based marketplace sources (remote `marketplace.json` URLs, git URLs with refs, local paths). A follow-up ([#692](https://github.com/microsoft/apm/issues/692), design phase) would enable direct URL-based package installation with digest pinning. If #692 ships, it would introduce non-git dependency sources that may require a new Renovate datasource. For now, **all APM dependencies resolve to git repositories**.
+
+7. **Growing ecosystem** — APM is under active development by Microsoft. The manifest schema and lock file format are versioned (`lockfile_version: "1"`) and designed for forward compatibility. The project has ~2 000 GitHub stars as of April 2026 and is the recommended way to manage agent context for GitHub Copilot Coding Agent.
