@@ -35,15 +35,19 @@
     letter-spacing: -0.02em;
   }
 
-  .reveal h1 { font-size: 2.2em; }
-  .reveal h2 { font-size: 1.6em; }
+  .reveal h1 { font-size: 2.4em; }
+  .reveal h2 { font-size: 1.8em; margin-bottom: 0.4em; }
   .reveal h3 { font-size: 1.2em; }
 
-  .reveal section { text-align: left; }
+  .reveal section {
+    text-align: left;
+    height: 100%;
+    box-sizing: border-box;
+  }
 
   .reveal pre {
     width: 100%;
-    font-size: 0.52em;
+    font-size: 0.55em;
     box-shadow: none;
     margin: 0.4em 0;
   }
@@ -52,9 +56,9 @@
     background: #0d1117;
     border: 1px solid #30363d;
     border-radius: 8px;
-    padding: 1em;
-    max-height: 520px;
-    line-height: 1.45;
+    padding: 0.8em 1em;
+    max-height: 600px;
+    line-height: 1.5;
   }
 
   .reveal code {
@@ -70,7 +74,7 @@
   }
 
   .reveal table {
-    font-size: 0.65em;
+    font-size: 0.75em;
     border-collapse: collapse;
     width: 100%;
     margin: 0.5em 0;
@@ -80,13 +84,13 @@
     background: var(--accent-dim);
     color: #fff;
     font-weight: 600;
-    padding: 0.6em 0.8em;
+    padding: 0.5em 0.7em;
     text-align: left;
     border: none;
   }
 
   .reveal table td {
-    padding: 0.5em 0.8em;
+    padding: 0.45em 0.7em;
     border-bottom: 1px solid #30363d;
     vertical-align: top;
   }
@@ -105,10 +109,10 @@
   .reveal .callout {
     background: var(--surface-raised);
     border-left: 4px solid var(--accent);
-    padding: 0.7em 1em;
+    padding: 0.6em 0.9em;
     border-radius: 0 8px 8px 0;
-    margin: 0.6em 0;
-    font-size: 0.8em;
+    margin: 0.5em 0;
+    font-size: 0.85em;
   }
 
   .reveal .badge {
@@ -129,13 +133,6 @@
     align-items: start;
   }
 
-  .reveal .three-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1em;
-    align-items: start;
-  }
-
   .reveal .panel {
     background: var(--surface-raised);
     border-radius: 8px;
@@ -150,7 +147,7 @@
   }
 
   .reveal ul {
-    font-size: 0.8em;
+    font-size: 0.85em;
     list-style: none;
     padding-left: 0;
   }
@@ -178,18 +175,18 @@
   }
 
   .title-slide h1 {
-    font-size: 2.6em;
+    font-size: 2.8em;
     margin-bottom: 0.1em;
   }
 
   .title-slide .subtitle {
     color: var(--text-muted);
-    font-size: 1.1em;
+    font-size: 1.2em;
     margin-bottom: 1.5em;
   }
 
   .title-slide .meta {
-    font-size: 0.7em;
+    font-size: 0.75em;
     color: var(--text-muted);
   }
 
@@ -197,7 +194,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0.6em;
-    font-size: 0.7em;
+    font-size: 0.75em;
   }
 
   .reveal .prim-card {
@@ -206,11 +203,6 @@
     border-radius: 8px;
     padding: 0.7em;
     text-align: center;
-    transition: border-color 0.2s;
-  }
-
-  .reveal .prim-card:hover {
-    border-color: var(--accent);
   }
 
   .reveal .prim-card .icon {
@@ -230,68 +222,40 @@
     margin-top: 0.2em;
   }
 
-  .reveal .annotation {
-    color: var(--orange);
-    font-size: 0.7em;
-    font-style: italic;
+  /* Mermaid: large readable text for presentations */
+  .mermaid-rendered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
   }
 
-  .reveal .timeline {
-    position: relative;
-    padding-left: 2em;
+  .mermaid-rendered svg {
+    max-width: 100%;
+    height: auto;
+    max-height: 580px;
   }
 
-  .reveal .timeline::before {
-    content: "";
-    position: absolute;
-    left: 0.5em;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--accent-dim);
+  /* Slides with full-size diagrams */
+  .diagram-full .mermaid-rendered svg {
+    max-height: 650px;
   }
 
-  .reveal .timeline-item {
-    position: relative;
-    margin-bottom: 1em;
-    font-size: 0.75em;
-  }
-
-  .reveal .timeline-item::before {
-    content: "";
-    position: absolute;
-    left: -1.7em;
-    top: 0.35em;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-
-  .reveal .timeline-item.future::before {
-    background: transparent;
-    border: 2px solid var(--accent-dim);
-  }
-
-  .reveal .timeline-item .label {
-    font-weight: 600;
-    color: var(--accent-bright);
-  }
-
-  .mermaid {
-    font-size: 0.8em;
-  }
-
-  .mermaid svg {
-    max-height: 480px;
+  .reveal .key-point {
+    background: linear-gradient(135deg, rgba(0,188,212,0.15), rgba(0,188,212,0.05));
+    border: 1px solid rgba(0,188,212,0.3);
+    border-radius: 8px;
+    padding: 0.6em 1em;
+    margin: 0.4em 0;
+    font-size: 0.85em;
   }
 
   .reveal .exercise-step {
     background: var(--surface-raised);
     border-radius: 8px;
-    padding: 0.5em 0.8em;
+    padding: 0.4em 0.8em;
     margin: 0.3em 0;
-    font-size: 0.7em;
+    font-size: 0.75em;
     display: flex;
     align-items: baseline;
     gap: 0.6em;
@@ -305,13 +269,64 @@
     text-align: center;
   }
 
-  .reveal .key-point {
-    background: linear-gradient(135deg, rgba(0,188,212,0.15), rgba(0,188,212,0.05));
-    border: 1px solid rgba(0,188,212,0.3);
-    border-radius: 8px;
-    padding: 0.6em 1em;
+  /* Summary slide */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5em;
     margin: 0.5em 0;
+  }
+
+  .summary-before, .summary-after {
+    border-radius: 12px;
+    padding: 1em 1.2em;
     font-size: 0.8em;
+  }
+
+  .summary-before {
+    background: rgba(239,83,80,0.08);
+    border: 2px solid rgba(239,83,80,0.3);
+  }
+
+  .summary-before h3 { color: var(--red); margin: 0 0 0.5em 0; }
+
+  .summary-after {
+    background: rgba(102,187,106,0.08);
+    border: 2px solid rgba(102,187,106,0.3);
+  }
+
+  .summary-after h3 { color: var(--green); margin: 0 0 0.5em 0; }
+
+  .summary-before li::before, .summary-after li::before {
+    content: none !important;
+  }
+
+  .summary-before ul, .summary-after ul {
+    font-size: 1em;
+    padding-left: 1.2em;
+    list-style: disc;
+  }
+
+  .summary-before li, .summary-after li {
+    margin-bottom: 0.3em;
+  }
+
+  .get-started {
+    background: var(--surface-raised);
+    border-radius: 12px;
+    padding: 0.7em 1.2em;
+    margin-top: 0.6em;
+    display: flex;
+    align-items: center;
+    gap: 1.5em;
+    font-size: 0.85em;
+  }
+
+  .get-started .label {
+    color: var(--accent-bright);
+    font-weight: 700;
+    font-size: 1.1em;
+    white-space: nowrap;
   }
 </style>
 </head>
@@ -326,9 +341,9 @@
   <h1>APM <span class="muted" style="font-size:0.5em">meets</span> Renovate</h1>
   <div class="subtitle">Automated dependency updates for AI agent context</div>
   <div style="display:flex; gap:2em; align-items:center; justify-content:center; margin:1em 0;">
-    <span class="badge" style="font-size:0.9em; padding:0.4em 1em;">Agent Package Manager</span>
-    <span style="color:var(--text-muted); font-size:1.2em;">+</span>
-    <span class="badge" style="font-size:0.9em; padding:0.4em 1em;">Renovate Bot</span>
+    <span class="badge" style="font-size:1em; padding:0.4em 1em;">Agent Package Manager</span>
+    <span style="color:var(--text-muted); font-size:1.4em;">+</span>
+    <span class="badge" style="font-size:1em; padding:0.4em 1em;">Renovate Bot</span>
   </div>
   <div class="meta">Workshop &mdash; 2026</div>
 </section>
@@ -338,7 +353,7 @@
 <!-- ============================================================ -->
 <section>
   <h2>The Problem</h2>
-  <p style="font-size:0.75em; color:var(--text-muted); margin-bottom:0.6em;">
+  <p style="font-size:0.85em; color:var(--text-muted); margin-bottom:0.5em;">
     You solved dependency management for code. Agent configuration has no equivalent.
   </p>
   <table>
@@ -354,7 +369,7 @@
       <tr><td>No audit trail for agent config</td><td>Lock file tracks every dependency</td></tr>
     </tbody>
   </table>
-  <div class="callout" style="margin-top:0.5em;">
+  <div class="callout" style="margin-top:0.4em;">
     The cost compounds with team size. 5 devs = 5 divergent agent configs. 50 devs = 50.
   </div>
 </section>
@@ -364,7 +379,7 @@
 <!-- ============================================================ -->
 <section>
   <h2>What is APM?</h2>
-  <div class="key-point" style="font-size:1em; text-align:center; margin:0.5em 0;">
+  <div class="key-point" style="font-size:1.1em; text-align:center; margin:0.4em 0;">
     Think <code>package.json</code> &mdash; but for AI agent configuration
   </div>
   <ul>
@@ -384,7 +399,7 @@ apm install                # resolve + lock + deploy</code></pre>
 <!-- ============================================================ -->
 <section>
   <h2>The Seven Primitives</h2>
-  <p style="font-size:0.7em; color:var(--text-muted);">APM manages seven types of agent configuration. Each is a first-class citizen.</p>
+  <p style="font-size:0.75em; color:var(--text-muted);">APM manages seven types of agent configuration. Each is a first-class citizen.</p>
   <div class="prim-grid">
     <div class="prim-card">
       <div class="icon">&#x1F4DD;</div>
@@ -422,8 +437,8 @@ apm install                # resolve + lock + deploy</code></pre>
       <div class="desc">External tool<br>integrations</div>
     </div>
   </div>
-  <div class="callout" style="margin-top:0.6em;">
-    These map directly to what Copilot, Claude, and Cursor already understand.<br>
+  <div class="callout" style="margin-top:0.5em;">
+    These map directly to what Copilot, Claude, and Cursor already understand.
     APM manages the primitives that already exist across tools.
   </div>
 </section>
@@ -459,13 +474,13 @@ devDependencies:
   apm:
     - contoso/test-helpers#v1.0.0</code></pre>
     </div>
-    <div style="font-size:0.7em;">
+    <div style="font-size:0.75em;">
       <div class="callout"><strong class="accent">#v1.0.0</strong> &mdash; version pin (git tag)</div>
       <div class="callout"><strong class="accent">gitlab.com/...</strong> &mdash; host encoded in string</div>
       <div class="callout"><strong class="accent">Object form</strong> &mdash; for subdirectories, aliases, non-standard URLs</div>
       <div class="callout"><strong class="accent">devDependencies</strong> &mdash; excluded from <code>apm pack</code> bundles</div>
       <div class="callout"><strong class="accent">mcp:</strong> &mdash; MCP server declarations (separate concern)</div>
-      <div class="key-point" style="margin-top:0.8em;">
+      <div class="key-point" style="margin-top:0.6em;">
         <strong>For Renovate:</strong> focus on <code>dependencies.apm</code> and <code>devDependencies.apm</code> entries with version tags.
       </div>
     </div>
@@ -504,12 +519,12 @@ dependencies:
     deployed_files:
       - .github/instructions/common.md</code></pre>
     </div>
-    <div style="font-size:0.7em;">
+    <div style="font-size:0.75em;">
       <div class="callout"><strong class="accent">resolved_commit</strong> &mdash; exact SHA (immutable pin)</div>
       <div class="callout"><strong class="accent">depth: 2 + resolved_by</strong> &mdash; transitive dependency</div>
       <div class="callout"><strong class="accent">content_hash</strong> &mdash; SHA-256 integrity verification</div>
       <div class="callout"><strong class="accent">deployed_files</strong> &mdash; every file APM placed in your project</div>
-      <div class="key-point" style="margin-top:0.8em;">
+      <div class="key-point" style="margin-top:0.6em;">
         Commit to version control. <code>git log apm.lock.yaml</code> is your audit trail.
       </div>
     </div>
@@ -517,60 +532,23 @@ dependencies:
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 7: Dependency Types -->
-<!-- ============================================================ -->
-<section>
-  <h2>Dependency Types: A Taxonomy</h2>
-  <div class="mermaid">
-graph TD
-    ROOT["<b>dependencies</b> in apm.yml"]:::root --> APM["<b>apm</b><br>Agent context packages"]:::apmNode
-    ROOT --> MCP["<b>mcp</b><br>MCP server declarations"]:::mcpNode
-    ROOT --> DEV["<b>devDependencies</b><br>Build/test only"]:::devNode
-
-    APM --> STR["String form"]:::apmNode
-    APM --> OBJ["Object form"]:::apmNode
-
-    STR --> GH["owner/repo#v1.0.0<br><i>GitHub implicit</i>"]:::leaf
-    STR --> NON["gitlab.com/org/repo#v2.0<br><i>explicit host</i>"]:::leaf
-    STR --> VIRT["owner/repo/subdir<br><i>virtual package</i>"]:::leaf
-    STR --> URL["https://...git#v2.0.0<br><i>full URL</i>"]:::leaf
-
-    OBJ --> OBJEX["git: URL<br>path: subdir<br>ref: v2.0<br>alias: name"]:::leaf
-
-    MCP --> MCPREG["Registry reference"]:::mcpLeaf
-    MCP --> MCPSELF["Self-defined server"]:::mcpLeaf
-
-    DEV --> DA["devDependencies.apm"]:::devLeaf
-    DEV --> DM["devDependencies.mcp"]:::devLeaf
-
-    classDef root fill:#1a1a2e,stroke:#00bcd4,stroke-width:2px,color:#e0e0e0
-    classDef apmNode fill:#0a3a3e,stroke:#00bcd4,color:#4dd0e1
-    classDef mcpNode fill:#3a2a0a,stroke:#ffa726,color:#ffa726
-    classDef devNode fill:#2a2a2a,stroke:#888,color:#a0a0b0
-    classDef leaf fill:#0d1117,stroke:#30363d,color:#e0e0e0
-    classDef mcpLeaf fill:#0d1117,stroke:#ffa726,color:#ffa726
-    classDef devLeaf fill:#0d1117,stroke:#888,color:#a0a0b0
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 8: Multi-Agent Compilation -->
+<!-- SLIDE 7: Multi-Agent Compilation (was 8) -->
 <!-- ============================================================ -->
 <section>
   <h2>One Manifest, Every Runtime</h2>
-  <div class="mermaid">
+  <script type="text/mermaid">
 graph LR
-    M["<b>apm.yml</b><br>Single source of truth"]:::manifest --> I["<b>apm install</b>"]:::cmd
+    M["apm.yml<br/>Single source of truth"]:::manifest --> I["apm install"]:::cmd
 
-    I --> GH["<b>.github/</b><br>agents/<br>instructions/<br>skills/<br>hooks/"]:::copilot
-    I --> CL["<b>.claude/</b><br>commands/<br>skills/<br>settings/"]:::claude
-    I --> CU["<b>.cursor/</b><br>rules/<br>agents/<br>skills/"]:::cursor
-    I --> OC["<b>.opencode/</b><br>agents/<br>commands/"]:::opencode
-    I --> CX["<b>.codex/</b><br>agents/<br>hooks/"]:::codex
+    I --> GH[".github/<br/>agents, instructions,<br/>skills, hooks"]:::copilot
+    I --> CL[".claude/<br/>commands,<br/>skills, settings"]:::claude
+    I --> CU[".cursor/<br/>rules,<br/>agents, skills"]:::cursor
+    I --> OC[".opencode/<br/>agents,<br/>commands"]:::opencode
+    I --> CX[".codex/<br/>agents,<br/>hooks"]:::codex
 
-    I --> C["<b>apm compile</b>"]:::cmd
-    C --> AM["<b>AGENTS.md</b><br>Copilot, Codex"]:::output
-    C --> CM["<b>CLAUDE.md</b><br>Claude Code"]:::output
+    I --> C["apm compile"]:::cmd
+    C --> AM["AGENTS.md"]:::output
+    C --> CM["CLAUDE.md"]:::output
 
     classDef manifest fill:#0a3a3e,stroke:#00bcd4,stroke-width:2px,color:#4dd0e1
     classDef cmd fill:#1a1a2e,stroke:#00bcd4,color:#00bcd4
@@ -580,19 +558,20 @@ graph LR
     classDef opencode fill:#0d1117,stroke:#ffa726,color:#e0e0e0
     classDef codex fill:#0d1117,stroke:#ef5350,color:#e0e0e0
     classDef output fill:#1a1a2e,stroke:#30363d,color:#a0a0b0
-  </div>
+  </script>
   <div class="callout" style="margin-top:0.3em;">
     Zero lock-in: if you stop using APM, the output files still work &mdash; they're the native format each tool expects.
   </div>
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 9: Ecosystem Landscape -->
+<!-- SLIDE 8: Ecosystem Landscape (was 9) -->
 <!-- ============================================================ -->
 <section>
   <h2>APM in the Ecosystem</h2>
   <div class="two-col">
-    <div class="mermaid">
+    <div>
+      <script type="text/mermaid">
 graph TB
     subgraph tools ["AI Coding Tools"]
         direction LR
@@ -610,10 +589,10 @@ graph TB
     end
 
     subgraph pkg ["Package Management"]
-        AP["<b>APM</b><br>Manifest + Lock + Deps<br>+ Policy engine"]:::apm
+        AP["APM<br/>Manifest + Lock + Deps<br/>+ Policy engine"]:::apm
     end
 
-    GIT["<b>Git</b><br>Source of truth"]:::git
+    GIT["Git<br/>Source of truth"]:::git
 
     tools --> dist
     dist --> GIT
@@ -624,9 +603,10 @@ graph TB
     classDef dist fill:#0d1117,stroke:#ffa726,color:#ffa726
     classDef apm fill:#0a3a3e,stroke:#00bcd4,stroke-width:2px,color:#4dd0e1
     classDef git fill:#1a1a2e,stroke:#888,color:#a0a0b0
+      </script>
     </div>
     <div>
-      <table style="font-size:0.9em;">
+      <table style="font-size:0.95em;">
         <thead><tr><th>Tool</th><th>Versions</th><th>Lock</th><th>Deps</th></tr></thead>
         <tbody>
           <tr><td>gh skill</td><td>Tag pin</td><td class="red">No</td><td class="red">No</td></tr>
@@ -635,121 +615,58 @@ graph TB
           <tr><td class="accent"><strong>APM</strong></td><td class="green">Semver</td><td class="green">Yes</td><td class="green">Yes</td></tr>
         </tbody>
       </table>
-      <div class="callout" style="margin-top:0.5em;">
-        APM sits <em>underneath</em> plugin systems as the governance and composition layer. It auto-detects native plugins and normalizes them.
+      <div class="callout" style="margin-top:0.6em;">
+        APM sits <em>underneath</em> plugin systems as the governance and composition layer.
+        It auto-detects native plugins and normalizes them.
       </div>
     </div>
   </div>
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 10: Enterprise Governance -->
+<!-- SLIDE 9: Renovate 101 (was 11) — BIGGER layout -->
 <!-- ============================================================ -->
-<section>
-  <h2>Enterprise Governance</h2>
-  <div class="three-col">
-    <div class="panel">
-      <h3>Policy Engine</h3>
-<pre><code class="language-yaml">name: contoso-enterprise-policy
-version: "1.0.0"
-enforcement: block
-
-dependencies:
-  allow:
-    - "contoso-*/*"
-    - "microsoft/*"
-    - "github/*"
-  deny:
-    - "untrusted-vendor/*"
-  require:
-    - "contoso-governance/coding-standards"
-    - "contoso-governance/security-hooks#v2.0.0"
-
-unmanaged_files:
-  action: deny</code></pre>
-    </div>
-    <div class="panel">
-      <h3>Content Verification</h3>
-<pre><code class="language-yaml"># In apm.lock.yaml
-content_hash:
-  "sha256:9f86d081884c..."
-
-deployed_file_hashes:
-  .github/agents/arch.md:
-    "sha256:a1b2c3d4e5..."
-  .github/skills/review/:
-    "sha256:f6e5d4c3b2..."</code></pre>
-      <p style="font-size:0.7em; color:var(--text-muted); margin-top:0.5em;">
-        SHA-256 of every deployed file.<br>
-        Mismatch triggers re-download.
-      </p>
-    </div>
-    <div class="panel">
-      <h3>CI Gate</h3>
-<pre><code class="language-bash"># In your CI pipeline:
-apm audit --ci
-# Content & unicode scan
-
-apm audit --ci --policy org
-# + org policy enforcement
-
-# Exit 0 = pass
-# Exit 1 = fail</code></pre>
-      <div class="key-point" style="margin-top:0.5em; font-size:0.85em;">
-        Add as a required status check. Renovate PRs must pass too.
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 11: Renovate 101 Refresher -->
-<!-- ============================================================ -->
-<section>
+<section class="diagram-full">
   <h2>Renovate 101 <span class="muted">(quick refresher)</span></h2>
-  <div class="two-col">
-    <div style="font-size:0.72em;">
-      <div class="callout"><strong class="accent">Manager</strong> &mdash; understands a package file format<br><span class="muted">npm reads package.json, pip reads requirements.txt</span></div>
-      <div class="callout"><strong class="accent">managerFilePatterns</strong> &mdash; regex to find those files<br><span class="muted">e.g. <code>package\\.json$</code></span></div>
-      <div class="callout"><strong class="accent">Datasource</strong> &mdash; where to look up available versions<br><span class="muted">npm registry, GitHub tags, Docker Hub</span></div>
-      <div class="callout"><strong class="accent">Artifact</strong> &mdash; lock files regenerated after a bump<br><span class="muted">package-lock.json, yarn.lock, poetry.lock</span></div>
-    </div>
-    <div>
-      <div class="mermaid">
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.8em; font-size:0.85em; margin-bottom:0.6em;">
+    <div class="callout"><strong class="accent">Manager</strong> &mdash; understands a package file format<br><span class="muted">npm reads package.json, pip reads requirements.txt</span></div>
+    <div class="callout"><strong class="accent">managerFilePatterns</strong> &mdash; regex to find those files<br><span class="muted">e.g. <code>package\.json$</code></span></div>
+    <div class="callout"><strong class="accent">Datasource</strong> &mdash; where to look up available versions<br><span class="muted">npm registry, GitHub tags, Docker Hub</span></div>
+    <div class="callout"><strong class="accent">Artifact</strong> &mdash; lock files regenerated after a bump<br><span class="muted">package-lock.json, yarn.lock, poetry.lock</span></div>
+  </div>
+  <script type="text/mermaid">
 graph LR
-    D["Detect<br><code>managerFilePatterns</code>"]:::step --> E["Extract<br>Parse deps"]:::step
-    E --> L["Lookup<br>Query datasource"]:::step
-    L --> U["Update<br>Bump version"]:::step
-    U --> A["Artifact<br>Regen lock file"]:::step
-    A --> P["PR<br>Open pull request"]:::step
+    D["Detect<br/>managerFilePatterns"]:::step --> E["Extract<br/>Parse dependencies"]:::step
+    E --> L["Lookup<br/>Query datasource"]:::step
+    L --> U["Update<br/>Bump version in manifest"]:::step
+    U --> A["Artifact<br/>Regenerate lock file"]:::step
+    A --> P["PR<br/>Open pull request"]:::step
 
     classDef step fill:#0a3a3e,stroke:#00bcd4,color:#e0e0e0
-      </div>
-      <div class="key-point" style="margin-top:0.6em; font-size:0.8em;">
-        APM will be a <strong>new manager</strong> in Renovate,<br>following this exact same loop.
-      </div>
-    </div>
+  </script>
+  <div class="key-point" style="text-align:center; margin-top:0.4em; font-size:0.9em;">
+    APM will be a <strong>new manager</strong> in Renovate, following this exact same loop.
   </div>
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 12: How Renovate Sees APM -->
+<!-- SLIDE 10: How Renovate Sees APM (was 12) — BIGGER layout -->
 <!-- ============================================================ -->
-<section>
+<section class="diagram-full">
   <h2>How Renovate Sees APM</h2>
-  <div class="mermaid">
+  <script type="text/mermaid">
 graph TD
-    SCAN["<b>Scan</b> repository<br>Match: <code>(^|/)apm\\.yml$</code>"]:::detect --> PARSE["<b>Parse</b> apm.yml<br>Standard YAML parser"]:::extract
-    PARSE --> DEPS["<b>Extract</b> dependencies<br>dependencies.apm +<br>devDependencies.apm"]:::extract
-    DEPS --> HOST{"<b>Determine host</b><br>from dependency string"}:::decide
-    HOST -->|"owner/repo#v1.0"| GH["github.com<br><i>implicit</i>"]:::ds
-    HOST -->|"gitlab.com/org/repo#v2.0"| GL["gitlab.com<br><i>explicit</i>"]:::ds
-    GH --> TAGS["Query <b>git-tags</b><br>datasource"]:::lookup
+    SCAN["Scan repository<br/>Match: apm.yml"]:::detect --> PARSE["Parse apm.yml<br/>Standard YAML parser"]:::extract
+    PARSE --> DEPS["Extract dependencies<br/>dependencies.apm +<br/>devDependencies.apm"]:::extract
+    DEPS --> HOST{"Determine host<br/>from dependency string"}:::decide
+    HOST -->|"owner/repo#v1.0"| GH["github.com<br/>implicit"]:::ds
+    HOST -->|"gitlab.com/org/repo#v2.0"| GL["gitlab.com<br/>explicit"]:::ds
+    GH --> TAGS["Query git-tags<br/>datasource"]:::lookup
     GL --> TAGS
-    TAGS --> CMP["Compare current vs latest<br>Semver ordering"]:::lookup
-    CMP --> BUMP["Update ref in apm.yml<br><code>#v1.0.0</code> &#x2192; <code>#v1.1.0</code>"]:::update
-    BUMP --> INST["Run <b>apm install</b><br>Regenerate apm.lock.yaml"]:::artifact
-    INST --> PR["Open <b>Pull Request</b><br>apm.yml + apm.lock.yaml"]:::pr
+    TAGS --> CMP["Compare versions<br/>Semver ordering"]:::lookup
+    CMP --> BUMP["Update ref in apm.yml<br/>#v1.0.0 to #v1.1.0"]:::update
+    BUMP --> INST["Run apm install<br/>Regenerate apm.lock.yaml"]:::artifact
+    INST --> PR["Open Pull Request<br/>apm.yml + apm.lock.yaml"]:::pr
 
     classDef detect fill:#1a1a2e,stroke:#00bcd4,color:#4dd0e1
     classDef extract fill:#0a3a3e,stroke:#00bcd4,color:#e0e0e0
@@ -759,228 +676,39 @@ graph TD
     classDef update fill:#0d1117,stroke:#ab47bc,color:#ab47bc
     classDef artifact fill:#0a3a3e,stroke:#ffa726,color:#ffa726
     classDef pr fill:#0a3a3e,stroke:#66bb6a,color:#66bb6a
-  </div>
+  </script>
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 13: Extraction Deep Dive -->
+<!-- SLIDE 11: Artifact Update (was 15) -->
 <!-- ============================================================ -->
-<section>
-  <h2>Extraction Deep Dive</h2>
-  <div class="two-col">
-    <div class="panel">
-      <h3>String Form</h3>
-<pre><code class="language-yaml">dependencies:
-  apm:
-    - microsoft/apm-sample-package#v1.0.0</code></pre>
-      <table style="font-size:0.95em; margin-top:0.4em;">
-        <tr><td class="accent">depName</td><td><code>microsoft/apm-sample-package</code></td></tr>
-        <tr><td class="accent">currentValue</td><td><code>v1.0.0</code></td></tr>
-        <tr><td class="accent">datasource</td><td><code>github-tags</code></td></tr>
-        <tr><td class="accent">registryUrl</td><td><span class="muted">(default github.com)</span></td></tr>
-        <tr><td class="accent">depType</td><td><code>dependencies</code></td></tr>
-      </table>
-    </div>
-    <div class="panel">
-      <h3>Object Form</h3>
-<pre><code class="language-yaml">dependencies:
-  apm:
-    - git: https://gitlab.com/acme/repo.git
-      path: instructions/security
-      ref: v2.0</code></pre>
-      <table style="font-size:0.95em; margin-top:0.4em;">
-        <tr><td class="accent">depName</td><td><code>acme/repo</code></td></tr>
-        <tr><td class="accent">currentValue</td><td><code>v2.0</code></td></tr>
-        <tr><td class="accent">datasource</td><td><code>git-tags</code></td></tr>
-        <tr><td class="accent">registryUrl</td><td><code>https://gitlab.com</code></td></tr>
-        <tr><td class="accent">depType</td><td><code>dependencies</code></td></tr>
-      </table>
-    </div>
-  </div>
-  <div class="callout" style="margin-top:0.5em;">
-    <strong>Skipped:</strong> deps without a version ref &bull; local paths (<code>./packages/...</code>) &bull; branch refs (<code>#main</code>) &bull; MCP dependencies
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 14: Lookup & Versioning -->
-<!-- ============================================================ -->
-<section>
-  <h2>Lookup &amp; Versioning</h2>
-  <div style="font-size:0.75em;">
-    <div class="two-col" style="margin-bottom:0.5em;">
-      <div>
-        <div class="callout"><strong class="accent">Datasource:</strong> <code>github-tags</code> or <code>git-tags</code></div>
-        <div class="callout"><strong class="accent">Versioning:</strong> Semver &mdash; tags prefixed with <code>v</code></div>
-        <div class="callout"><strong class="accent">No range constraints.</strong> Every dep is an exact pin.<br>No <code>^1.0.0</code>, no <code>~1.x</code>. Just <code>#v1.0.0</code>.</div>
-      </div>
-      <div>
-        <div class="panel" style="text-align:center; padding:1em;">
-          <p class="muted" style="margin:0 0 0.3em 0;">Tags on <code>microsoft/apm-sample-package</code>:</p>
-          <div style="font-family:monospace; font-size:1.1em; letter-spacing:0.1em;">
-            <span style="color:var(--text-muted)">v1.0.0</span>
-            <span style="color:#30363d"> &mdash;&mdash; </span>
-            <span style="color:var(--text-muted)">v1.0.1</span>
-            <span style="color:#30363d"> &mdash;&mdash; </span>
-            <span style="color:var(--text-muted)">v1.1.0</span>
-            <span style="color:#30363d"> &mdash;&mdash; </span>
-            <span class="green"><strong>v2.0.0</strong></span>
-          </div>
-          <div style="margin-top:0.3em;">
-            <span style="color:var(--orange);">&#x25B2; pinned</span>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <span class="green">&#x25B2; Renovate proposes</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <table>
-      <thead><tr><th>Ecosystem</th><th>Version source</th><th>Ranges?</th><th>What Renovate updates</th></tr></thead>
-      <tbody>
-        <tr><td>npm</td><td>npm Registry</td><td>Yes (<code>^</code>, <code>~</code>)</td><td><code>package.json</code> constraint</td></tr>
-        <tr><td>pip</td><td>PyPI</td><td>Yes (<code>&gt;=</code>, <code>==</code>)</td><td><code>requirements.txt</code></td></tr>
-        <tr><td>Go</td><td>Module proxy</td><td>Yes (module)</td><td><code>go.mod</code></td></tr>
-        <tr><td class="accent"><strong>APM</strong></td><td class="accent"><strong>Git tags</strong></td><td class="accent"><strong>No (exact pin)</strong></td><td class="accent"><strong><code>#ref</code> in <code>apm.yml</code></strong></td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 15: Artifact Update -->
-<!-- ============================================================ -->
-<section>
+<section class="diagram-full">
   <h2>Artifact Update: Lock File Regeneration</h2>
-  <div class="mermaid">
+  <script type="text/mermaid">
 sequenceDiagram
     participant R as Renovate
     participant F as apm.yml
     participant CLI as apm install
     participant L as apm.lock.yaml
 
-    R->>F: Update ref #v1.0.0 &#x2192; #v1.1.0
+    R->>F: Update ref #v1.0.0 to #v1.1.0
     R->>CLI: Run apm install
     CLI->>CLI: Clone / fetch updated dep
     CLI->>CLI: Resolve transitive deps (BFS)
     CLI->>CLI: Compute content hashes (SHA-256)
     CLI->>L: Write updated lock file
-    Note over L: New commit SHA<br>New content hashes<br>Updated deployed_files
+    Note over L: New commit SHA,<br/>new content hashes,<br/>updated deployed_files
     R->>R: Stage apm.yml + apm.lock.yaml
     R->>R: Open Pull Request
-  </div>
-  <div class="two-col" style="margin-top:0.4em; font-size:0.7em;">
+  </script>
+  <div class="two-col" style="margin-top:0.3em; font-size:0.8em;">
     <div class="callout"><strong>Normal update:</strong> <code>apm install</code> (after apm.yml edit)</div>
     <div class="callout"><strong>Lock file maintenance:</strong> <code>rm -f apm.lock.yaml && apm install</code></div>
   </div>
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 16: Full PR Lifecycle -->
-<!-- ============================================================ -->
-<section>
-  <h2>The Full PR Lifecycle</h2>
-  <div class="mermaid">
-graph TD
-    REN["Renovate Bot<br>detects new tag"]:::ren --> BR["Creates branch<br><code>renovate/sample-pkg-1.1.0</code>"]:::ren
-    BR --> ED["Edits apm.yml<br><code>#v1.0.0 &#x2192; #v1.1.0</code>"]:::update
-    ED --> ART["Runs <b>apm install</b><br>Updates apm.lock.yaml"]:::artifact
-    ART --> PR["Opens Pull Request"]:::pr
-
-    PR --> CI["CI Pipeline"]:::ci
-    CI --> C1["<code>apm install</code><br>verify lock"]:::check
-    CI --> C2["<code>apm audit --ci</code><br>content scan"]:::check
-    CI --> C3["<code>apm audit --ci --policy</code><br>org policy"]:::check
-
-    C1 --> GATE{"All pass?"}:::decide
-    C2 --> GATE
-    C3 --> GATE
-
-    GATE -->|"Yes"| MERGE["Auto-merge"]:::merge
-    GATE -->|"No"| BLOCK["Review required"]:::block
-
-    classDef ren fill:#1a1a2e,stroke:#00bcd4,color:#4dd0e1
-    classDef update fill:#0d1117,stroke:#ab47bc,color:#ab47bc
-    classDef artifact fill:#0a3a3e,stroke:#ffa726,color:#ffa726
-    classDef pr fill:#0a3a3e,stroke:#00bcd4,color:#e0e0e0
-    classDef ci fill:#1a1a2e,stroke:#888,color:#a0a0b0
-    classDef check fill:#0d1117,stroke:#4dd0e1,color:#e0e0e0
-    classDef decide fill:#1a1a2e,stroke:#ffa726,color:#ffa726
-    classDef merge fill:#0a3a3e,stroke:#66bb6a,color:#66bb6a
-    classDef block fill:#0d1117,stroke:#ef5350,color:#ef5350
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 17: Configuration -->
-<!-- ============================================================ -->
-<section>
-  <h2>Renovate Configuration</h2>
-  <div class="two-col">
-    <div>
-<pre><code class="language-json">{
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "apm": {
-    "enabled": true,
-    "automerge": true,
-    "automergeType": "pr",
-    "schedule": ["before 7am on Monday"],
-    "groupName": "APM dependencies",
-    "commitMessagePrefix": "chore(apm):"
-  }
-}</code></pre>
-    </div>
-    <div style="font-size:0.72em;">
-      <div class="callout">
-        <strong class="green">Automatic:</strong> <code>managerFilePatterns</code> defaults to <code>(^|/)apm\\.yml$</code> once the manager ships.
-      </div>
-      <div class="callout">
-        <strong>Group or split</strong> &mdash; update all APM deps together or per-dependency
-      </div>
-      <div class="callout">
-        <strong>Schedule</strong> &mdash; weekly, daily, or on-demand
-      </div>
-      <div class="callout">
-        <strong>Auto-merge policy</strong> &mdash; auto-merge patch/minor, require review for major
-      </div>
-      <div class="callout">
-        <strong>Prerequisite:</strong> <code>pip install apm-cli</code> in Renovate's execution environment (for lock file regeneration)
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 18: What's Next -->
-<!-- ============================================================ -->
-<section>
-  <h2>What's Next</h2>
-  <div class="timeline">
-    <div class="timeline-item">
-      <div class="label">Now</div>
-      <div>APM dependencies (<code>dependencies.apm</code>) with semver tags &mdash; full Renovate support.<br>Lock file artifact updates via <code>apm install</code>.</div>
-    </div>
-    <div class="timeline-item">
-      <div class="label">Near-term</div>
-      <div><strong>MCP server versioning</strong> &mdash; as the MCP ecosystem matures, version pins will become standard. Renovate can then update <code>dependencies.mcp</code> too.</div>
-    </div>
-    <div class="timeline-item">
-      <div class="label">Near-term</div>
-      <div><strong>Branch/SHA-pinned deps</strong> &mdash; update to latest commit on a branch. Lower-value but useful for internal packages.</div>
-    </div>
-    <div class="timeline-item future">
-      <div class="label">Future</div>
-      <div><strong>URL-based packages</strong> (<a href="#">microsoft/apm#692</a>) &mdash; <code>apm install https://...tar.gz</code> with digest pinning. Would need a new Renovate datasource.</div>
-    </div>
-    <div class="timeline-item future">
-      <div class="label">Future</div>
-      <div><strong><code>.well-known</code> skill discovery</strong> &mdash; HTTP-based skill distribution via <code>/.well-known/agent-skills/index.json</code>. Spec still draft v0.2.0.</div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================ -->
-<!-- SLIDE 19: Workshop Exercise -->
+<!-- SLIDE 12: Workshop Exercise (was 19) -->
 <!-- ============================================================ -->
 <section>
   <h2>Workshop: Try It</h2>
@@ -993,33 +721,37 @@ graph TD
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 20: Recap -->
+<!-- SLIDE 13: Summary (redone) -->
 <!-- ============================================================ -->
-<section>
-  <h2>Recap</h2>
-  <div class="mermaid">
-graph LR
-    DEV["Developer<br>writes <b>apm.yml</b>"]:::dev --> GIT["git push"]:::git
-    GIT --> REN["<b>Renovate</b><br>monitors deps"]:::ren
-    REN --> PR["Opens PR<br>apm.yml +<br>apm.lock.yaml"]:::pr
-    PR --> CI["<b>CI</b><br>apm audit --ci"]:::ci
-    CI --> MERGE["Merge"]:::merge
-    MERGE --> AGENTS["Every runtime<br>gets native config"]:::out
-
-    classDef dev fill:#0d1117,stroke:#4dd0e1,color:#4dd0e1
-    classDef git fill:#0d1117,stroke:#888,color:#a0a0b0
-    classDef ren fill:#0a3a3e,stroke:#00bcd4,color:#00bcd4
-    classDef pr fill:#0a3a3e,stroke:#ab47bc,color:#ab47bc
-    classDef ci fill:#0a3a3e,stroke:#ffa726,color:#ffa726
-    classDef merge fill:#0a3a3e,stroke:#66bb6a,color:#66bb6a
-    classDef out fill:#1a1a2e,stroke:#4dd0e1,color:#e0e0e0
+<section data-background-gradient="radial-gradient(ellipse at 70% 40%, #0a2a2e 0%, #0d1117 70%)">
+  <h2>What Changes for You</h2>
+  <div class="summary-grid">
+    <div class="summary-before">
+      <h3>Before</h3>
+      <ul>
+        <li>Agent config is manual, per-developer</li>
+        <li>No version control on prompts/skills</li>
+        <li>MCP servers: "ask Sara, she set it up"</li>
+        <li>New joiner onboarding: half a day</li>
+        <li>No visibility into config drift</li>
+      </ul>
+    </div>
+    <div class="summary-after">
+      <h3>After: APM + Renovate</h3>
+      <ul>
+        <li><code>apm.yml</code> declares everything in one file</li>
+        <li>Lock file pins every version to a commit SHA</li>
+        <li>Renovate auto-opens PRs when deps update</li>
+        <li>New joiner onboarding: <code>apm install</code></li>
+        <li><code>apm audit --ci</code> gates every merge</li>
+      </ul>
+    </div>
   </div>
-  <div style="margin-top:0.8em;">
-    <div class="key-point"><strong>1.</strong> &nbsp;APM brings <code>package.json</code>-style dependency management to AI agent configuration</div>
-    <div class="key-point"><strong>2.</strong> &nbsp;Renovate's APM manager automates version bumps + lock file updates</div>
-    <div class="key-point"><strong>3.</strong> &nbsp;Together: reproducible, governed, auto-updated agent config across your org</div>
+  <div class="get-started">
+    <div class="label">Get started</div>
+    <code style="font-size:0.95em;">pip install apm-cli && apm init && apm install</code>
   </div>
-  <p style="text-align:center; margin-top:1em; font-size:1.2em; color:var(--accent-bright);">Questions?</p>
+  <p style="text-align:center; margin-top:0.8em; font-size:1.4em; color:var(--accent-bright);">Questions?</p>
 </section>
 
 </div><!-- .slides -->
@@ -1043,33 +775,40 @@ mermaid.initialize({
     secondaryColor: '#2a2a3c',
     tertiaryColor: '#1a1a2e',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: '14px',
+    fontSize: '20px',
   },
   flowchart: {
     useMaxWidth: true,
     htmlLabels: true,
     curve: 'basis',
+    nodeSpacing: 30,
+    rankSpacing: 50,
   },
   sequence: {
     useMaxWidth: true,
-    actorMargin: 80,
-    messageMargin: 40,
+    actorMargin: 100,
+    messageMargin: 50,
+    actorFontSize: 20,
+    messageFontSize: 18,
+    noteFontSize: 16,
   },
 });
 
-async function renderMermaidSlide(slide) {
-  const mermaidDivs = slide.querySelectorAll('.mermaid:not([data-processed])');
-  for (const div of mermaidDivs) {
+async function renderMermaidInSlide(slide) {
+  const scripts = slide.querySelectorAll('script[type="text/mermaid"]:not([data-processed])');
+  for (const script of scripts) {
     const id = 'mermaid-' + Math.random().toString(36).substring(2, 9);
-    const graphDefinition = div.textContent.trim();
-    div.textContent = '';
+    const graphDefinition = script.textContent.trim();
+    const container = document.createElement('div');
+    container.className = 'mermaid-rendered';
+    script.parentNode.insertBefore(container, script);
+    script.setAttribute('data-processed', 'true');
     try {
       const { svg } = await mermaid.render(id, graphDefinition);
-      div.innerHTML = svg;
-      div.setAttribute('data-processed', 'true');
+      container.innerHTML = svg;
     } catch (e) {
-      console.error('Mermaid render error:', e);
-      div.innerHTML = '<pre style="color:#ef5350;">Diagram render error: ' + e.message + '</pre>';
+      console.error('Mermaid render error:', e, '\nDefinition:', graphDefinition);
+      container.innerHTML = '<pre style="color:#ef5350;font-size:0.7em;">Diagram render error: ' + e.message + '</pre>';
     }
   }
 }
@@ -1077,9 +816,9 @@ async function renderMermaidSlide(slide) {
 const deck = new Reveal({
   hash: true,
   slideNumber: true,
-  width: 1280,
-  height: 720,
-  margin: 0.06,
+  width: 1920,
+  height: 1080,
+  margin: 0.04,
   center: false,
   transition: 'slide',
   transitionSpeed: 'fast',
@@ -1087,22 +826,11 @@ const deck = new Reveal({
 });
 
 deck.initialize().then(async () => {
-  // Render mermaid on current slide
-  const currentSlide = deck.getCurrentSlide();
-  if (currentSlide) await renderMermaidSlide(currentSlide);
-
-  // Render mermaid when navigating to a new slide
-  deck.on('slidechanged', async (event) => {
-    if (event.currentSlide) await renderMermaidSlide(event.currentSlide);
-  });
-
-  // Also render all slides after a short delay for print/overview mode
-  setTimeout(async () => {
-    const allSlides = document.querySelectorAll('.reveal section');
-    for (const slide of allSlides) {
-      await renderMermaidSlide(slide);
-    }
-  }, 1000);
+  // Render all slides eagerly so diagrams are ready when navigating
+  const allSlides = document.querySelectorAll('.reveal section');
+  for (const slide of allSlides) {
+    await renderMermaidInSlide(slide);
+  }
 });
 </script>
 </body>
