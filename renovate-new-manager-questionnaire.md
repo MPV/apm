@@ -14,11 +14,11 @@ Did you read our documentation on adding a package manager?
 
 APM is **language-agnostic**. It manages AI agent context (instructions, prompts, skills, hooks, MCP server declarations) for any project, regardless of the project's programming language. The tool itself is written in Python and distributed via PyPI (`apm-cli`).
 
-The closest analogy is how EditorConfig or Prettier manage editor/formatter configuration regardless of project language — APM does the same for AI coding-agent configuration.
+The closest analogy is **pre-commit** or **Terraform modules** — a language-agnostic dependency manager that declares versioned dependencies on external git repos, resolves transitive graphs, and produces a lock file. But instead of git hooks or infrastructure, APM manages AI agent configuration.
 
 ### How popular is this package manager?
 
-- **~2 000 GitHub stars** (as of April 2026) and growing rapidly since its release in late 2025. See [live count](https://github.com/microsoft/apm).
+- **~2 000 GitHub stars** (as of April 2026). See [live count](https://github.com/microsoft/apm).
 - Published by **Microsoft** as an open-source project.
 - Targets the fast-growing AI coding-agent ecosystem (GitHub Copilot, Claude Code, Cursor, OpenCode, Codex).
 - Installable via `pip install apm-cli`, Homebrew, and platform-specific installers.
@@ -39,7 +39,7 @@ There is no other widely adopted package manager for AI agent context. The space
 - **Codex plugin system** ([docs](https://developers.openai.com/codex/plugins)) — OpenAI Codex has a native plugin format (`.codex-plugin/plugin.json`) with skills, MCP servers, and app integrations (`.app.json` for external services like Gmail, Slack — unique to Codex). Marketplace at `.agents/plugins/marketplace.json`; also reads `.claude-plugin/marketplace.json` for cross-tool compatibility. Source types: `local`, `url` (git), and `git-subdir` with `ref` pinning. Adds installation policy fields (`AVAILABLE`, `INSTALLED_BY_DEFAULT`, `NOT_AVAILABLE`) and an `interface` block for visual presentation (icons, screenshots, brand color). CLI: `codex plugin marketplace add OWNER/REPO`. Shares the same core `marketplace.json` schema as Copilot CLI and Claude Code. Like both, this is a distribution and runtime system — no transitive dependency resolution, no lock file. Self-serve plugin publishing is not yet available.
 - **`.well-known` Agent Skills Discovery** ([agentskills/agentskills#254](https://github.com/agentskills/agentskills/pull/254)) — an emerging spec for HTTP-based skill discovery via `/.well-known/agent-skills/index.json` (RFC 8615). Distributes skills as `SKILL.md` files or archives with SHA-256 digests. This is a discovery/distribution mechanism, not a package manager — it has no dependency resolution, lock files, or transitive deps. APM already supports `SKILL.md` as a dependency type and could consume `.well-known` endpoints in the future.
 
-APM is the first tool to treat agent context as versioned, shareable, lockable packages with transitive dependency resolution.
+APM is the only tool in this space that provides a manifest + lock file + transitive dependency resolution model.
 
 ### What are the big selling points for this package manager?
 
@@ -63,7 +63,7 @@ Both files live at the project root. The manifest filename is always exactly `ap
 ### Which [`managerFilePatterns`](../usage/configuration-options.md#managerfilepatterns) pattern(s) should Renovate use?
 
 ```
-["(^|/)apm\\.yml$"]
+["/(^|/)apm\\.yml$/"]
 ```
 
 Note: the lock file `apm.lock.yaml` lives alongside `apm.yml` and should be treated as an artifact that Renovate updates (see [Artifacts](#artifacts)), but does not need to be in `managerFilePatterns` itself.
@@ -208,7 +208,15 @@ This means Renovate would update a dependency by changing the ref value (e.g. `#
 - [ ] Yes, provide details.
 - [x] No.
 
-APM dependencies are git repositories hosted on GitHub, GitLab, Bitbucket, Azure DevOps, etc. Renovate's existing **git-tags** datasource should work for tag-based version refs. For GitHub-hosted packages (the vast majority), the **github-tags** or **github-releases** datasource applies directly.
+APM dependencies are git repositories hosted on GitHub, GitLab, Bitbucket, Azure DevOps, etc. Renovate's existing datasources cover this — the manager would dynamically select the appropriate one based on the host in the dependency string:
+
+| Host | Datasource |
+|------|-----------|
+| `github.com` (explicit or implicit default) | `github-tags` |
+| `gitlab.com` (or self-hosted GitLab) | `gitlab-tags` |
+| All other hosts (Bitbucket, Azure DevOps, self-hosted) | `git-tags` (generic `git ls-remote`) |
+
+This is the same pattern used by the **pre-commit** manager. The manager should also declare `versioning: "semver"` since the `git-tags` datasource has no default versioning scheme.
 
 ### Will users want (or need to) set a custom host or custom registry for Renovate's lookup?
 
@@ -264,13 +272,7 @@ The lock file is strongly recommended and should be committed to version control
 
 ### If lockfiles or checksums are used: what tool and exact commands should Renovate use to update one (or more) package versions in a dependency file?
 
-**Tooling prerequisite:** Renovate needs `apm-cli` available in the update environment. Install via:
-
-```bash
-pip install apm-cli
-```
-
-Then, after Renovate modifies the version ref in `apm.yml`:
+After Renovate modifies the version ref in `apm.yml`:
 
 ```bash
 apm install
@@ -281,6 +283,10 @@ This re-resolves affected dependencies and updates `apm.lock.yaml`. For a full r
 ```bash
 apm install --update
 ```
+
+**Tooling:** `apm-cli` is a Python package (`pip install apm-cli`). For Renovate's Containerbase-based environments (`binarySource: install`), `apm-cli` would need to be added to the [Containerbase tool index](https://github.com/containerbase/base). For `binarySource: global`, users pre-install it on the Renovate host.
+
+**Extraction-only fallback:** If `apm-cli` is not available, Renovate can still operate in extraction-only mode — updating the ref in `apm.yml` without regenerating the lock file. Users would then run `apm install` in their own CI to update `apm.lock.yaml`. This matches how other managers degrade gracefully when their tool binary is missing.
 
 Note: `apm install` writes cloned repositories to `apm_modules/` (typically gitignored). Renovate should only commit changes to `apm.yml` and `apm.lock.yaml`, not the `apm_modules/` directory.
 
@@ -341,4 +347,4 @@ This resolves all dependencies fresh and produces a new `apm.lock.yaml`.
 
 6. **Emerging `.well-known` skill discovery and URL-based dependencies** — The [Agent Skills Discovery spec](https://github.com/agentskills/agentskills/pull/254) proposes HTTP-based skill distribution at `/.well-known/agent-skills/index.json` (skills as `SKILL.md` files or archives with SHA-256 digests). APM tracks this via [microsoft/apm#554](https://github.com/microsoft/apm/issues/554), but `.well-known` support is explicitly deferred pending upstream spec stability (still draft v0.2.0). Related in-flight work: [#676](https://github.com/microsoft/apm/issues/676) (PR [#691](https://github.com/microsoft/apm/pull/691)) adds URL-based marketplace sources (remote `marketplace.json` URLs, git URLs with refs, local paths). A follow-up ([#692](https://github.com/microsoft/apm/issues/692), design phase) would enable direct URL-based package installation with digest pinning. If #692 ships, it would introduce non-git dependency sources that may require a new Renovate datasource. For now, **all APM dependencies resolve to git repositories**.
 
-7. **Growing ecosystem** — APM is under active development by Microsoft. The manifest schema and lock file format are versioned (`lockfile_version: "1"`) and designed for forward compatibility. The project has ~2 000 GitHub stars as of April 2026 and is the recommended way to manage agent context for GitHub Copilot Coding Agent.
+7. **Stable, versioned formats** — The manifest schema and lock file format are versioned (`lockfile_version: "1"`) and designed for forward compatibility. The project is under active development by Microsoft.
