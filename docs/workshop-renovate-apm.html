@@ -237,7 +237,7 @@
 
   /* All diagram slides get generous vertical space */
   .diagram-slide .mermaid-rendered svg {
-    max-height: 750px;
+    max-height: 800px;
   }
 
   .reveal .key-point {
@@ -649,33 +649,30 @@ graph LR
 </section>
 
 <!-- ============================================================ -->
-<!-- SLIDE 10: How Renovate Sees APM (was 12) — BIGGER layout -->
+<!-- SLIDE 10: How Renovate Sees APM (was 12) — LR layout -->
 <!-- ============================================================ -->
 <section class="diagram-slide">
   <h2>How Renovate Sees APM</h2>
   <script type="text/mermaid">
-graph TD
-    SCAN["Scan repository<br/>Match: apm.yml"]:::detect --> PARSE["Parse apm.yml<br/>Standard YAML parser"]:::extract
-    PARSE --> DEPS["Extract dependencies<br/>dependencies.apm +<br/>devDependencies.apm"]:::extract
-    DEPS --> HOST{"Determine host<br/>from dependency string"}:::decide
-    HOST -->|"owner/repo#v1.0"| GH["github.com<br/>implicit"]:::ds
-    HOST -->|"gitlab.com/org/repo#v2.0"| GL["gitlab.com<br/>explicit"]:::ds
-    GH --> TAGS["Query git-tags<br/>datasource"]:::lookup
-    GL --> TAGS
-    TAGS --> CMP["Compare versions<br/>Semver ordering"]:::lookup
-    CMP --> BUMP["Update ref in apm.yml<br/>#v1.0.0 to #v1.1.0"]:::update
-    BUMP --> INST["Run apm install<br/>Regenerate apm.lock.yaml"]:::artifact
-    INST --> PR["Open Pull Request<br/>apm.yml + apm.lock.yaml"]:::pr
+graph LR
+    SCAN["Scan repo<br/>find apm.yml"]:::detect --> EXTRACT["Extract deps<br/>dependencies.apm +<br/>devDependencies.apm"]:::extract
+    EXTRACT --> LOOKUP["Lookup versions<br/>github-tags / git-tags"]:::lookup
+    LOOKUP --> UPDATE["Bump ref in apm.yml<br/>#v1.0.0 to #v1.1.0"]:::update
+    UPDATE --> ARTIFACT["Run apm install<br/>regen apm.lock.yaml"]:::artifact
+    ARTIFACT --> PR["Open Pull Request<br/>apm.yml + apm.lock.yaml"]:::pr
 
     classDef detect fill:#1a1a2e,stroke:#00bcd4,color:#4dd0e1
     classDef extract fill:#0a3a3e,stroke:#00bcd4,color:#e0e0e0
-    classDef decide fill:#1a1a2e,stroke:#ffa726,color:#ffa726
-    classDef ds fill:#0d1117,stroke:#66bb6a,color:#66bb6a
     classDef lookup fill:#0d1117,stroke:#4dd0e1,color:#e0e0e0
     classDef update fill:#0d1117,stroke:#ab47bc,color:#ab47bc
     classDef artifact fill:#0a3a3e,stroke:#ffa726,color:#ffa726
     classDef pr fill:#0a3a3e,stroke:#66bb6a,color:#66bb6a
   </script>
+  <div class="callout" style="margin-top:0.4em;">
+    <strong>Host detection:</strong> <code>owner/repo</code> &rarr; github-tags &bull;
+    <code>gitlab.com/org/repo</code> &rarr; git-tags &bull;
+    Host is encoded directly in the dependency string.
+  </div>
 </section>
 
 <!-- ============================================================ -->
@@ -774,24 +771,24 @@ mermaid.initialize({
     secondaryColor: '#2a2a3c',
     tertiaryColor: '#1a1a2e',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: '24px',
+    fontSize: '28px',
   },
   flowchart: {
     useMaxWidth: true,
     htmlLabels: true,
     curve: 'basis',
-    nodeSpacing: 40,
-    rankSpacing: 60,
-    padding: 20,
+    nodeSpacing: 50,
+    rankSpacing: 70,
+    padding: 24,
   },
   sequence: {
     useMaxWidth: true,
-    actorMargin: 120,
-    messageMargin: 60,
-    actorFontSize: 24,
-    messageFontSize: 22,
-    noteFontSize: 20,
-    noteMargin: 20,
+    actorMargin: 140,
+    messageMargin: 70,
+    actorFontSize: 28,
+    messageFontSize: 26,
+    noteFontSize: 22,
+    noteMargin: 24,
   },
 });
 
