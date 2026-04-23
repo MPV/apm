@@ -233,12 +233,11 @@
   .mermaid-rendered svg {
     max-width: 100%;
     height: auto;
-    max-height: 580px;
   }
 
-  /* Slides with full-size diagrams */
-  .diagram-full .mermaid-rendered svg {
-    max-height: 650px;
+  /* All diagram slides get generous vertical space */
+  .diagram-slide .mermaid-rendered svg {
+    max-height: 750px;
   }
 
   .reveal .key-point {
@@ -534,7 +533,7 @@ dependencies:
 <!-- ============================================================ -->
 <!-- SLIDE 7: Multi-Agent Compilation (was 8) -->
 <!-- ============================================================ -->
-<section>
+<section class="diagram-slide">
   <h2>One Manifest, Every Runtime</h2>
   <script type="text/mermaid">
 graph LR
@@ -567,9 +566,9 @@ graph LR
 <!-- ============================================================ -->
 <!-- SLIDE 8: Ecosystem Landscape (was 9) -->
 <!-- ============================================================ -->
-<section>
+<section class="diagram-slide">
   <h2>APM in the Ecosystem</h2>
-  <div class="two-col">
+  <div style="display:grid; grid-template-columns: 3fr 2fr; gap:1.5em; align-items:start;">
     <div>
       <script type="text/mermaid">
 graph TB
@@ -626,7 +625,7 @@ graph TB
 <!-- ============================================================ -->
 <!-- SLIDE 9: Renovate 101 (was 11) — BIGGER layout -->
 <!-- ============================================================ -->
-<section class="diagram-full">
+<section class="diagram-slide">
   <h2>Renovate 101 <span class="muted">(quick refresher)</span></h2>
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.8em; font-size:0.85em; margin-bottom:0.6em;">
     <div class="callout"><strong class="accent">Manager</strong> &mdash; understands a package file format<br><span class="muted">npm reads package.json, pip reads requirements.txt</span></div>
@@ -652,7 +651,7 @@ graph LR
 <!-- ============================================================ -->
 <!-- SLIDE 10: How Renovate Sees APM (was 12) — BIGGER layout -->
 <!-- ============================================================ -->
-<section class="diagram-full">
+<section class="diagram-slide">
   <h2>How Renovate Sees APM</h2>
   <script type="text/mermaid">
 graph TD
@@ -682,7 +681,7 @@ graph TD
 <!-- ============================================================ -->
 <!-- SLIDE 11: Artifact Update (was 15) -->
 <!-- ============================================================ -->
-<section class="diagram-full">
+<section class="diagram-slide">
   <h2>Artifact Update: Lock File Regeneration</h2>
   <script type="text/mermaid">
 sequenceDiagram
@@ -775,22 +774,24 @@ mermaid.initialize({
     secondaryColor: '#2a2a3c',
     tertiaryColor: '#1a1a2e',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: '20px',
+    fontSize: '24px',
   },
   flowchart: {
     useMaxWidth: true,
     htmlLabels: true,
     curve: 'basis',
-    nodeSpacing: 30,
-    rankSpacing: 50,
+    nodeSpacing: 40,
+    rankSpacing: 60,
+    padding: 20,
   },
   sequence: {
     useMaxWidth: true,
-    actorMargin: 100,
-    messageMargin: 50,
-    actorFontSize: 20,
-    messageFontSize: 18,
-    noteFontSize: 16,
+    actorMargin: 120,
+    messageMargin: 60,
+    actorFontSize: 24,
+    messageFontSize: 22,
+    noteFontSize: 20,
+    noteMargin: 20,
   },
 });
 
