@@ -49,6 +49,24 @@ def installed_apm_version() -> str:
         return "unknown"
 
 
+def source_date_epoch_timestamp() -> str | None:
+    """Return ``SOURCE_DATE_EPOCH`` as an ISO-8601 UTC string.
+
+    Returns ``None`` when the variable is unset, empty, or not a usable Unix
+    timestamp, so callers fall back to their own default.
+    """
+    source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if not source_date_epoch:
+        return None
+    try:
+        return datetime.fromtimestamp(
+            int(source_date_epoch),
+            tz=timezone.utc,
+        ).isoformat()
+    except (ValueError, OverflowError, OSError):
+        return None
+
+
 def resolve_reproducible_timestamp(
     explicit: str | None,
     lockfile_generated_at: str | None,
@@ -56,16 +74,21 @@ def resolve_reproducible_timestamp(
     """Resolve stable metadata time from explicit, environment, or legacy input."""
     if explicit:
         return explicit
-    source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
-    if source_date_epoch:
-        try:
-            return datetime.fromtimestamp(
-                int(source_date_epoch),
-                tz=timezone.utc,
-            ).isoformat()
-        except (ValueError, OverflowError, OSError):
-            pass
-    return lockfile_generated_at or _REPRODUCIBLE_EPOCH
+    return source_date_epoch_timestamp() or lockfile_generated_at or _REPRODUCIBLE_EPOCH
+
+
+def _refreshed_generated_at() -> str:
+    """Timestamp for a substantive write to a lockfile carrying the legacy field.
+
+    Honors ``SOURCE_DATE_EPOCH`` so an automated re-derivation is reproducible.
+    Bots regenerate the lockfile from the base branch on every run, which makes
+    every regeneration a substantive write even when it resolves to exactly the
+    same dependencies as the previous one; without a pinned clock the refreshed
+    timestamp is the only difference, and it is enough to manufacture a commit.
+    Falls back to wall-clock time, which is the behavior of an interactive
+    install where the timestamp is the point.
+    """
+    return source_date_epoch_timestamp() or datetime.now(timezone.utc).isoformat()
 
 
 class LockfileFormatError(ValueError):
@@ -956,8 +979,10 @@ class LockFile:
         carries the field, keep it stable for semantic no-ops and refresh it for
         substantive writes. This behavior should be changed to remove the legacy
         timestamp in a future APM version, but for now it preserves backward
-        compatibility with older APM builds that expect the field. This method
-        may mutate ``self.generated_at`` to preserve or refresh that metadata.
+        compatibility with older APM builds that expect the field. A refresh
+        honors ``SOURCE_DATE_EPOCH``, so an automated caller can pin the clock
+        and keep repeated re-derivations byte-identical. This method may mutate
+        ``self.generated_at`` to preserve or refresh that metadata.
         Callers that already loaded the destination can pass ``existing_lockfile``
         to avoid parsing the same bytes again.
         """
@@ -991,9 +1016,9 @@ class LockFile:
             if self.is_semantically_equivalent(existing):
                 self.generated_at = existing.generated_at
             else:
-                self.generated_at = datetime.now(timezone.utc).isoformat()
+                self.generated_at = _refreshed_generated_at()
         elif legacy_timestamp_present:
-            self.generated_at = datetime.now(timezone.utc).isoformat()
+            self.generated_at = _refreshed_generated_at()
         else:
             self.generated_at = None
         atomic_write_text(path, self.to_yaml())

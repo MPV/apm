@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- A `generated_at` refresh now honours `SOURCE_DATE_EPOCH`, so automation that
+  re-derives the lockfile from a base revision on every run produces
+  byte-identical output instead of a fresh timestamp each time. An unset or
+  unparseable value still falls back to wall-clock time.
 - Architecture ownership guards now use a sharded JSON registry and a
   single-process Python linter while preserving exact-revision compatibility
   and reducing warm median lint time by 75%. (#2739)

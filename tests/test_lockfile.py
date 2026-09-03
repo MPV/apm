@@ -13,8 +13,13 @@ from apm_cli.deps.lockfile import (
     get_lockfile_path,
     migrate_lockfile_if_needed,
     resolve_lockfile_path_for_read,
+    source_date_epoch_timestamp,
 )
 from apm_cli.models.apm_package import DependencyReference
+
+# 2026-01-01T00:00:00+00:00, used wherever a test pins the clock.
+_PINNED_EPOCH = 1767225600
+_PINNED_TIMESTAMP = "2026-01-01T00:00:00+00:00"
 
 
 class TestLockedDependency:
@@ -255,6 +260,7 @@ class TestLockFile:
         assert loaded.has_dependency("owner/repo")
 
     def test_write_refreshes_existing_generated_at(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("SOURCE_DATE_EPOCH", raising=False)
         lock_path = tmp_path / "apm.lock.yaml"
         lock_path.write_text(
             "lockfile_version: '1'\ngenerated_at: '2025-01-01T00:00:00+00:00'\ndependencies: []\n",
@@ -305,6 +311,7 @@ class TestLockFile:
     def test_write_repairs_malformed_legacy_file_and_refreshes_timestamp(
         self, tmp_path, monkeypatch
     ):
+        monkeypatch.delenv("SOURCE_DATE_EPOCH", raising=False)
         lock_path = tmp_path / "apm.lock.yaml"
         lock_path.write_text(
             "lockfile_version: '1'\ngenerated_at: '2025-01-01T00:00:00+00:00'\ndependencies: {}\n",
@@ -320,6 +327,71 @@ class TestLockFile:
         written = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
         assert written["dependencies"] == []
         assert written["generated_at"] == next_write.isoformat()
+
+    def test_write_refresh_honors_source_date_epoch(self, tmp_path, monkeypatch):
+        """A pinned clock replaces wall-clock time on a substantive refresh."""
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", str(_PINNED_EPOCH))
+        lock_path = tmp_path / "apm.lock.yaml"
+        lock_path.write_text(
+            "lockfile_version: '1'\ngenerated_at: '2025-01-01T00:00:00+00:00'\ndependencies: []\n",
+            encoding="utf-8",
+        )
+        lock = LockFile.read(lock_path)
+        assert lock is not None
+        lock.add_dependency(LockedDependency(repo_url="owner/repo"))
+
+        lock.write(lock_path)
+
+        written = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+        assert written["generated_at"] == _PINNED_TIMESTAMP
+
+    def test_write_refresh_falls_back_when_source_date_epoch_is_malformed(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "not-a-timestamp")
+        lock_path = tmp_path / "apm.lock.yaml"
+        lock_path.write_text(
+            "lockfile_version: '1'\ngenerated_at: '2025-01-01T00:00:00+00:00'\ndependencies: []\n",
+            encoding="utf-8",
+        )
+        lock = LockFile.read(lock_path)
+        assert lock is not None
+        lock.add_dependency(LockedDependency(repo_url="owner/repo"))
+        next_write = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        fixed_datetime = Mock()
+        fixed_datetime.now.return_value = next_write
+        monkeypatch.setattr("apm_cli.deps.lockfile.datetime", fixed_datetime)
+
+        lock.write(lock_path)
+
+        written = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+        assert written["generated_at"] == next_write.isoformat()
+
+    def test_repeated_rederivation_from_one_base_is_byte_identical(self, tmp_path, monkeypatch):
+        """A pinned clock keeps repeated re-resolution from one base stable.
+
+        An automation that re-derives the lockfile from the base branch on every
+        run makes a substantive write each time, because the base still carries
+        the pre-update pins. Only the refreshed timestamp then differs between
+        runs -- enough to manufacture a commit on an otherwise unchanged branch.
+        """
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", str(_PINNED_EPOCH))
+        base = (
+            "lockfile_version: '1'\ngenerated_at: '2025-01-01T00:00:00+00:00'\ndependencies: []\n"
+        )
+        lock_path = tmp_path / "apm.lock.yaml"
+
+        def rederive() -> str:
+            lock_path.write_text(base, encoding="utf-8")
+            lock = LockFile()
+            lock.add_dependency(LockedDependency(repo_url="owner/repo"))
+            lock.write(lock_path)
+            return lock_path.read_text(encoding="utf-8")
+
+        first = rederive()
+
+        assert rederive() == first
+        assert yaml.safe_load(first)["generated_at"] == _PINNED_TIMESTAMP
 
     def test_write_parses_legacy_lockfile_once(self, tmp_path, monkeypatch):
         from apm_cli.utils import yaml_io
@@ -549,6 +621,23 @@ class TestLockFile:
         installed = [(dep_ref, "commit123", 1, None)]
         lock = LockFile.from_installed_packages(installed, Mock())
         assert lock.has_dependency("owner/repo")
+
+
+class TestSourceDateEpochTimestamp:
+    """Tests for the SOURCE_DATE_EPOCH reader shared by both timestamp paths."""
+
+    def test_returns_none_when_unset(self, monkeypatch):
+        monkeypatch.delenv("SOURCE_DATE_EPOCH", raising=False)
+        assert source_date_epoch_timestamp() is None
+
+    def test_reads_a_valid_epoch(self, monkeypatch):
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", str(_PINNED_EPOCH))
+        assert source_date_epoch_timestamp() == _PINNED_TIMESTAMP
+
+    @pytest.mark.parametrize("value", ["", "  ", "not-a-timestamp", "1.5", "99999999999999999999"])
+    def test_returns_none_for_an_unusable_value(self, monkeypatch, value):
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", value)
+        assert source_date_epoch_timestamp() is None
 
 
 class TestGetLockfilePath:

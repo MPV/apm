@@ -334,6 +334,20 @@ lockfile includes the field, APM retains it for compatibility and refreshes it
 only on a substantive write. To migrate a legacy lockfile manually, delete the
 `generated_at: ...` line from `apm.lock.yaml` once; APM will not add it back.
 
+A refresh honours `SOURCE_DATE_EPOCH`, so automation can pin the clock and keep
+repeated writes byte-identical:
+
+```bash
+SOURCE_DATE_EPOCH=0 apm install
+```
+
+This matters for tools that re-derive the lockfile from a base revision on every
+run. Each re-derivation is a substantive write — the base still carries the
+pre-update pins — so without a pinned clock the refreshed timestamp is the only
+difference between two otherwise identical results, which is enough to
+manufacture a commit. An unset, empty, or unparseable value falls back to
+wall-clock time, which is what an interactive `apm install` wants.
+
 ## Drift and integrity
 
 The lockfile is what `apm audit` compares the workspace against. Each baseline
