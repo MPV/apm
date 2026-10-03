@@ -28,6 +28,11 @@ from apm_cli.core.target_catalog import (
     expand_all,
     normalize_target_name,
 )
+from apm_cli.utils.path_security import (
+    PathTraversalError,
+    ensure_path_within,
+    has_symlink_component,
+)
 
 RULE_FORMATS: frozenset[str] = frozenset(
     {"cursor_rules", "claude_rules", "windsurf_rules", "kiro_steering", "antigravity_rules"}
@@ -91,6 +96,9 @@ class PrimitiveMapping:
     :meth:`InstructionIntegrator._render_instruction`, which dispatches on the
     ``format_id`` to perform the transform.
     """
+
+    prompt_fields: tuple[str, ...] = ()
+    """Documented prompt-bearing fields in structured native primitives."""
 
     def __post_init__(self) -> None:
         """Keep ``output_compare`` and :data:`RULE_FORMATS` in lockstep.
@@ -172,11 +180,7 @@ class TargetProfile:
     ``for_scope(user_scope=True)``.
 
     Use this when a primitive must be deployed to a *different* location
-    or via a *different* transform at user scope.  The canonical example
-    is the Copilot target: at project scope each ``*.instructions.md``
-    file deploys individually to ``.github/instructions/``; at user scope
-    they are all concatenated into the single file that Copilot CLI reads
-    (``~/.copilot/copilot-instructions.md``).
+    or via a *different* transform at user scope than at project scope.
     """
 
     include_scoped_in_user_root_context: bool = False
@@ -259,6 +263,9 @@ class TargetProfile:
     external_locator_encoder: Callable[[Path, Path], str] | None = None
     """Encode managed-root paths that require a native lockfile URI."""
 
+    external_locator_decoder: Callable[[str, Path], Path] | None = None
+    """Decode a native lockfile URI below the managed deployment root."""
+
     lockfile_uri_schemes: tuple[str, ...] = ()
     """URI prefixes governed by this target during reconciliation."""
 
@@ -327,6 +334,13 @@ class TargetProfile:
             return False
         return primitive in self.primitives
 
+    def skills_deploy_path(self, project_root: Path) -> Path:
+        """Return the actual skills root for static and resolved dynamic targets."""
+        if self.resolved_deploy_root is not None:
+            return self.deploy_path(project_root)
+        mapping = self.primitives["skills"]
+        return project_root / (mapping.deploy_root or self.root_dir) / "skills"
+
     def deploy_path(self, project_root: Path, *parts: str) -> Path:
         """Return the filesystem path for deployment.
 
@@ -351,6 +365,12 @@ class TargetProfile:
         if self.external_locator_encoder is None or deploy_root is None:
             return None
         return self.external_locator_encoder(path, deploy_root)
+
+    def decode_external_locator(self, locator: str, deploy_root: Path) -> Path | None:
+        """Decode a managed native locator through the target adapter."""
+        if self.external_locator_decoder is None:
+            return None
+        return self.external_locator_decoder(locator, deploy_root)
 
     def for_scope(self, user_scope: bool = False) -> TargetProfile | None:
         """Return a scope-resolved copy of this profile.
@@ -416,6 +436,14 @@ class TargetProfile:
             return None
 
         new_root = self.user_root_dir or self.root_dir
+        generated_files = self.generated_files
+
+        # Copilot's ``generated_files`` (``copilot-instructions.md``) is a
+        # compile-time output produced by the compiler against the fixed
+        # project root; it has no user-scope equivalent, so drop it here
+        # rather than let it leak into user-scope lockfile/drift tracking.
+        if self.name == "copilot":
+            generated_files = ()
 
         # Claude Code honors CLAUDE_CONFIG_DIR (default ~/.claude) and Hermes
         # honors HERMES_HOME (default ~/.hermes); mirror that at user scope so
@@ -456,7 +484,9 @@ class TargetProfile:
             merged.update(self.user_primitive_overrides)
             filtered = merged
 
-        return replace(self, root_dir=new_root, primitives=filtered)
+        return replace(
+            self, root_dir=new_root, primitives=filtered, generated_files=generated_files
+        )
 
 
 def _encode_cowork_locator(path: Path, deploy_root: Path) -> str:
@@ -464,6 +494,13 @@ def _encode_cowork_locator(path: Path, deploy_root: Path) -> str:
     from apm_cli.integration.copilot_cowork_paths import to_lockfile_path
 
     return to_lockfile_path(path, deploy_root)
+
+
+def _decode_cowork_locator(locator: str, deploy_root: Path) -> Path:
+    """Translate a Cowork lockfile URI through its native target adapter."""
+    from apm_cli.integration.copilot_cowork_paths import from_lockfile_path
+
+    return from_lockfile_path(locator, deploy_root)
 
 
 def _encode_copilot_app_locator(path: Path) -> str:
@@ -499,10 +536,10 @@ RUNTIME_TO_CANONICAL_TARGET: dict[str, str] = {
 
 KNOWN_TARGETS: dict[str, TargetProfile] = {
     # Copilot (GitHub) -- at user scope, Copilot CLI reads ~/.copilot/
-    # instead of ~/.github/.  Instructions are concatenated into
-    # ~/.copilot/copilot-instructions.md because Copilot CLI reads only
-    # that single file at user scope (not individual *.instructions.md).
-    # Ref: https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/create-custom-agents-for-cli
+    # instead of ~/.github/. Copilot CLI supports modular, path-scoped
+    # instructions at user scope via ~/.copilot/instructions/**/*.instructions.md,
+    # mirroring the project-scope .github/instructions/ layout.
+    # Ref: https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions
     "copilot": TargetProfile(
         capability=TARGET_CAPABILITIES["copilot"],
         root_dir=".github",
@@ -523,11 +560,12 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         },
         auto_create=True,
         detect_by_dir=True,
+        # "partial": instructions deploy modularly under
+        # ~/.copilot/instructions/ (restored above), but prompts/agents/
+        # skills/hooks/canvas have no documented Copilot CLI user-scope
+        # surface yet, so the target is not "True" (fully) supported.
         user_supported="partial",
         user_root_dir=".copilot",
-        user_primitive_overrides={
-            "instructions": PrimitiveMapping("", ".md", "copilot_user_instructions"),
-        },
         generated_files=("copilot-instructions.md",),
     ),
     # Claude Code -- the user-level config directory is whatever
@@ -665,7 +703,9 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         capability=TARGET_CAPABILITIES["gemini"],
         root_dir=".gemini",
         primitives={
-            "commands": PrimitiveMapping("commands", ".toml", "gemini_command"),
+            "commands": PrimitiveMapping(
+                "commands", ".toml", "gemini_command", prompt_fields=("prompt",)
+            ),
             "skills": PrimitiveMapping(
                 "skills",
                 "/SKILL.md",
@@ -764,7 +804,9 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         capability=TARGET_CAPABILITIES["codex"],
         root_dir=".codex",
         primitives={
-            "agents": PrimitiveMapping("agents", ".toml", "codex_agent"),
+            "agents": PrimitiveMapping(
+                "agents", ".toml", "codex_agent", prompt_fields=("developer_instructions",)
+            ),
             "skills": PrimitiveMapping(
                 "skills",
                 "/SKILL.md",
@@ -870,7 +912,7 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         user_supported=True,
         user_root_dir=".openclaw",
     ),
-    # Hermes agent (Nous Research) -- experimental.  Hermes natively reads
+    # Hermes agent (Nous Research) -- stable explicit-only. Hermes natively reads
     # the agentskills.io SKILL.md format and the AGENTS.md context-file
     # standard, both already emitted by APM, so skills + instructions reuse
     # the existing skill_standard / compile_family="agents" paths.  Skills
@@ -914,6 +956,9 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         user_root_resolver=lambda: _resolve_copilot_cowork_root(),
         external_locator_encoder=lambda path, deploy_root: _encode_cowork_locator(
             path, deploy_root
+        ),
+        external_locator_decoder=lambda locator, deploy_root: _decode_cowork_locator(
+            locator, deploy_root
         ),
         lockfile_uri_schemes=("cowork://",),
         warn_unsupported_primitives=True,
@@ -1069,14 +1114,14 @@ def _resolve_copilot_app_root() -> Path | None:
     return resolve_copilot_app_root()
 
 
-def _is_flag_enabled(flag_name: str) -> bool:
+def _is_flag_enabled(flag_name: str, *, create_config: bool = True) -> bool:
     """Check whether an experimental flag is enabled.
 
     Lazy import to avoid config I/O at module load time.
     """
     from apm_cli.core.experimental import is_enabled
 
-    return is_enabled(flag_name)
+    return is_enabled(flag_name, create_config=create_config)
 
 
 def resolve_hermes_root() -> Path:
@@ -1099,11 +1144,11 @@ def resolve_hermes_root() -> Path:
     return (Path.home() / ".hermes").resolve(strict=False)
 
 
-def _flag_gated(profile: TargetProfile) -> bool:
+def _flag_gated(profile: TargetProfile, *, create_config: bool = True) -> bool:
     """Return ``True`` if *profile* passes its flag gate (or has none)."""
     if profile.requires_flag is None:
         return True
-    return _is_flag_enabled(profile.requires_flag)
+    return _is_flag_enabled(profile.requires_flag, create_config=create_config)
 
 
 def get_integration_prefixes(targets=None, *, user_scope: bool = False) -> tuple:
@@ -1158,6 +1203,8 @@ def get_integration_prefixes(targets=None, *, user_scope: bool = False) -> tuple
 
 def active_targets_user_scope(
     explicit_target: str | list[str] | None = None,
+    *,
+    create_config: bool = True,
 ) -> list:
     """Return ``TargetProfile`` instances for user-scope deployment.
 
@@ -1203,13 +1250,13 @@ def active_targets_user_scope(
                     if p.name in all_targets
                     and not p.capability.explicit_only
                     and p.user_supported
-                    and _flag_gated(p)
+                    and _flag_gated(p, create_config=create_config)
                 ]
             profile = KNOWN_TARGETS.get(canonical)
             if (
                 profile
                 and profile.user_supported
-                and _flag_gated(profile)
+                and _flag_gated(profile, create_config=create_config)
                 and profile.name not in seen
             ):
                 seen.add(profile.name)
@@ -1223,7 +1270,7 @@ def active_targets_user_scope(
         for p in KNOWN_TARGETS.values()
         if p.user_supported
         and p.detect_by_dir
-        and _flag_gated(p)
+        and _flag_gated(p, create_config=create_config)
         and (home / p.effective_root(user_scope=True)).is_dir()
     ]
     if detected:
@@ -1236,6 +1283,8 @@ def active_targets_user_scope(
 def active_targets(
     project_root,
     explicit_target: str | list[str] | None = None,
+    *,
+    create_config: bool = True,
 ) -> list:
     """Return the list of ``TargetProfile`` instances that should be
     deployed into *project_root*.
@@ -1285,7 +1334,11 @@ def active_targets(
                 all_targets = {normalize_target_name(target) for target in expand_all("install")}
                 return [p for p in KNOWN_TARGETS.values() if p.name in all_targets]
             profile = KNOWN_TARGETS.get(canonical)
-            if profile and _flag_gated(profile) and profile.name not in seen:
+            if (
+                profile
+                and _flag_gated(profile, create_config=create_config)
+                and profile.name not in seen
+            ):
                 seen.add(profile.name)
                 profiles.append(profile)
         return profiles
@@ -1295,7 +1348,9 @@ def active_targets(
     detected = [
         p
         for p in KNOWN_TARGETS.values()
-        if p.detect_by_dir and _flag_gated(p) and (root / p.root_dir).is_dir()
+        if p.detect_by_dir
+        and _flag_gated(p, create_config=create_config)
+        and (root / p.root_dir).is_dir()
     ]
     if detected:
         return detected
@@ -1304,10 +1359,24 @@ def active_targets(
     return [KNOWN_TARGETS["copilot"]]
 
 
+def _validate_project_target_root(project_root: Path, profile: TargetProfile) -> Path:
+    """Return a contained project target root without following symlinks."""
+    deploy_path = profile.deploy_path(project_root)
+    if profile.resolved_deploy_root is not None:
+        return deploy_path
+    if has_symlink_component(project_root, deploy_path):
+        raise PathTraversalError(
+            f"Refusing deployment through symlinked target root: {profile.root_dir}"
+        )
+    return ensure_path_within(deploy_path, project_root)
+
+
 def resolve_targets(
     project_root,
     user_scope: bool = False,
     explicit_target: str | list[str] | None = None,
+    *,
+    create_config: bool = True,
 ) -> list:
     """Return scope-resolved ``TargetProfile`` instances.
 
@@ -1325,14 +1394,16 @@ def resolve_targets(
             or ``"all"``.  ``None`` means auto-detect.
     """
     if user_scope:
-        raw = active_targets_user_scope(explicit_target)
+        raw = active_targets_user_scope(explicit_target, create_config=create_config)
     else:
-        raw = active_targets(project_root, explicit_target)
+        raw = active_targets(project_root, explicit_target, create_config=create_config)
 
     resolved = []
     for t in raw:
         scoped = t.for_scope(user_scope=user_scope)
         if scoped is not None:
+            if not user_scope:
+                _validate_project_target_root(Path(project_root), scoped)
             resolved.append(scoped)
     return resolved
 
@@ -1347,7 +1418,7 @@ def materialize_project_target_profiles(
         profile = KNOWN_TARGETS.get(target_name)
         if profile is None:
             continue
-        deploy_path = profile.deploy_path(project_root)
+        deploy_path = _validate_project_target_root(project_root, profile)
         if not deploy_path.is_dir():
             deploy_path.mkdir(parents=True, exist_ok=True)
         profiles.append(profile)

@@ -178,6 +178,14 @@ def git_transport_policy(host_kind: str, remote_url: str) -> GitTransportPolicy:
     AuthResolver preserve its noninteractive SSH command.
     """
     scheme = urllib.parse.urlsplit(remote_url).scheme.lower()
+    if host_kind == "ado":
+        return GitTransportPolicy(
+            use_resolved_credentials=scheme == "https",
+            allow_native_credential_lookup=False,
+            preserve_config_isolation=True,
+            suppress_credential_helpers=True,
+            reject_https_downgrade=scheme == "https",
+        )
     if scheme == "http":
         return GitTransportPolicy(
             use_resolved_credentials=False,
@@ -248,6 +256,16 @@ def classify_host_provider(
         if provider.matcher(normalized_host):
             return provider
     raise RuntimeError(f"No host provider registered for {host!r}")
+
+
+def effective_host_provider_identity(
+    host: str,
+    *,
+    host_type: str | None = None,
+) -> tuple[str, str]:
+    """Return the backend and credential-route identity for one remote host."""
+    provider = classify_host_provider(host, host_type=host_type)
+    return provider.kind, provider.credential_purpose
 
 
 def register_host_backend(kind: str, backend_factory: type[Any]) -> None:

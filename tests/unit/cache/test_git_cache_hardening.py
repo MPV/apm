@@ -80,6 +80,8 @@ class TestCacheHitDiagnostics:
         shard = "cache-shard"
         checkout = cache._checkouts_root / shard / sha / "full"
         checkout.mkdir(parents=True)
+        (checkout / ".git").mkdir()
+        (checkout / ".git" / "config").write_text("[core]\n\tautocrlf = false\n", encoding="ascii")
 
         with (
             patch.object(cache, "_resolve_sha", return_value=sha),
@@ -90,7 +92,7 @@ class TestCacheHitDiagnostics:
             cache.get_checkout("ssh://sensitive-user@example.com/org/repo.git", "main")
 
         logged_url = urlsplit(caplog.records[-1].getMessage().split()[2])
-        assert logged_url.username is None
+        assert logged_url.username == "***"
         assert logged_url.hostname == "example.com"
 
 

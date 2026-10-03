@@ -13,6 +13,7 @@ This is the Template Method companion to the Strategy pattern in
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -52,38 +53,23 @@ def _effective_allow(ctx) -> dict | None:
     executable deploys).
     """
     from apm_cli.security.executables import (
-        build_exec_trust_context,
+        exec_trust_context_for_project,
         materialize_exec_map,
     )
-    from apm_cli.utils.yaml_io import load_yaml
 
     if getattr(ctx, "exec_trust_ctx", None) is not None:
         return getattr(ctx, "exec_allow_map", None)
 
-    project_data: dict | None = None
-    manifest = getattr(ctx, "project_root", None)
-    if manifest is not None:
-        manifest_path = manifest / "apm.yml"
-        if manifest_path.is_file():
-            data = load_yaml(manifest_path)
-            if isinstance(data, dict):
-                project_data = data
-                if data.get("allowExecutables") is not None:
-                    from apm_cli.security.executables import (
-                        warn_allow_executables_alias_once,
-                    )
-
-                    warn_allow_executables_alias_once(getattr(ctx, "logger", None))
-
-    # Fall back to the in-memory gate signal when apm.yml is unreadable so a
-    # project that opted in via allowExecutables still gates.
-    if project_data is None:
-        project_val = getattr(getattr(ctx, "apm_package", None), "allow_executables", None)
-        if isinstance(project_val, dict):
-            project_data = {"allowExecutables": project_val}
-
     policy = getattr(getattr(ctx, "policy_fetch", None), "policy", None)
-    trust_ctx = build_exec_trust_context(policy=policy, project_data=project_data)
+    project_root = getattr(ctx, "source_root", None) or getattr(ctx, "project_root", None)
+    project_allow = getattr(getattr(ctx, "apm_package", None), "allow_executables", None)
+    trust_ctx = exec_trust_context_for_project(
+        project_root,
+        policy=policy,
+        fallback_allow_executables=project_allow,
+        logger=getattr(ctx, "logger", None),
+        migrate_user_legacy=not getattr(ctx, "dry_run", False),
+    )
     allow_map = materialize_exec_map(trust_ctx)
     # Cache the resolved context and allow map once per install so each
     # dependency uses the same precedence ladder without re-reading policy files.
@@ -133,9 +119,10 @@ def preflight_agent_plugin_materializations(
     """Reject the batch once, before any package can mutate a target.
 
     A native Agent Plugin whose effective targets simply do not select
-    ``copilot`` is not a failure: it is skipped per-package during integration
-    (:func:`_record_agent_plugin_target_skip`), so it must not abort the
-    batch -- ``AgentPluginTargetExcludedError`` carries that distinction.
+    ``copilot`` is not a structural package failure: it is skipped per-package
+    during integration (:func:`_record_agent_plugin_target_skip`), so it must
+    not abort a batch that can still deploy other packages. The final install
+    outcome may still fail a pure no-op run.
     Anything else raised here (missing canonical IR, the imperative bundle
     route) is a real, actionable failure and aborts the whole batch.
     """
@@ -160,11 +147,12 @@ def preflight_agent_plugin_dry_run(
     'no native harness' fallback. Admission never depends on whether a
     Copilot binary exists or which version it reports.
 
-    Target exclusion (``AgentPluginTargetExcludedError``) is never fatal --
-    a real install skips that package with one warning and installs the
-    rest of the batch, so the dry-run preview must not abort the whole
-    preview for the same reason either. Only a genuine structural failure
-    (missing canonical IR, the imperative bundle route) aborts here.
+    Target exclusion (``AgentPluginTargetExcludedError``) is non-fatal during
+    preflight and per-package integration: a real install skips that package
+    with one warning and can still install the rest of the batch. The command
+    outcome owner may still fail a pure no-op install after integration. Only a
+    genuine structural failure (missing canonical IR, the imperative bundle
+    route) aborts here.
     """
     from apm_cli.bundle.local_bundle import route_agent_plugin_package
     from apm_cli.copilot_plugins.capability import native_registration_scope
@@ -182,6 +170,7 @@ def preflight_agent_plugin_dry_run(
             source_root,
             user_scope=is_user_scope(ctx.scope),
             explicit_target=explicit_target,
+            create_config=ctx.create_config,
         )
     except Exception:
         targets = getattr(ctx, "targets", None)
@@ -256,17 +245,83 @@ def _record_agent_plugin_boundary_failure(
     return deltas
 
 
+def _target_names_for_hint(ctx: InstallContext) -> str:
+    """Return the target argument to use in a recovery command."""
+    names: list[str] = []
+    for target in getattr(ctx, "targets", None) or ():
+        name = getattr(target, "name", target)
+        if isinstance(name, str) and name:
+            names.append(name)
+    return ",".join(sorted(set(names))) or "<target>"
+
+
+def _dependency_parts_for_skill_subpath(dep_ref) -> tuple[str, str]:
+    """Return dependency base and ref suffix for a skill-subpath command."""
+    if getattr(dep_ref, "is_local", False) and getattr(dep_ref, "local_path", None):
+        display = dep_ref.local_path
+    elif hasattr(dep_ref, "to_display_reference"):
+        display = dep_ref.to_display_reference()
+    elif hasattr(dep_ref, "get_identity"):
+        display = dep_ref.get_identity()
+    else:
+        display = getattr(dep_ref, "repo_url", "")
+    base, separator, reference = str(display).partition("#")
+    return base.rstrip("/"), f"{separator}{reference}" if separator else ""
+
+
+def _agent_plugin_skill_name_for_hint(
+    source: DependencySource,
+    materialization: Materialization,
+) -> str | None:
+    """Return one skill name that can be installed through the subpath route."""
+    package = getattr(materialization.package_info, "package", None)
+    plugin = getattr(package, "agent_plugin", None)
+    if plugin is None or not plugin.components.skills:
+        return None
+    requested = frozenset(getattr(source.ctx, "skill_subset", None) or ())
+    for skill in plugin.components.skills:
+        if skill.directory_name in requested or skill.name in requested:
+            return skill.directory_name
+    return plugin.components.skills[0].directory_name
+
+
+def _agent_plugin_target_skip_message(
+    source: DependencySource,
+    materialization: Materialization,
+    error: AgentPluginTargetExcludedError,
+) -> str:
+    """Return the actionable target-exclusion diagnostic for one package."""
+    message = str(error)
+    skill_name = _agent_plugin_skill_name_for_hint(source, materialization)
+    if skill_name is None:
+        return (
+            f"{message} No selected target received this package. "
+            "Select --target copilot or install a target-compatible package."
+        )
+
+    dep_base, ref_suffix = _dependency_parts_for_skill_subpath(source.dep_ref)
+    target_arg = _target_names_for_hint(source.ctx)
+    dependency = f"{dep_base}/skills/{skill_name}{ref_suffix}"
+    command = f"apm install {shlex.quote(dependency)} --target {shlex.quote(target_arg)}"
+    shell_note = " (POSIX shell)" if shlex.quote(dependency) != dependency else ""
+    return (
+        f"{message} No selected target received this package. "
+        f"To install available skill '{skill_name}' as a plain skill bundle, "
+        f"use{shell_note}: {command}"
+    )
+
+
 def _record_agent_plugin_target_skip(
     source: DependencySource,
     materialization: Materialization,
     error: AgentPluginTargetExcludedError,
 ) -> dict[str, int]:
-    """Record a non-fatal skip for a package this project does not target at copilot.
+    """Record a target skip for a package this project does not target at copilot.
 
     Mirrors the per-dependency ``targets:`` subset already handled in
     ``finalize_native_plugin``: native registration is skipped, ONE warning
-    names the package, and the rest of the batch installs. This is a warning,
-    not an error, so the install still exits 0.
+    names the package, and the rest of the batch can still install. The
+    install outcome owner fails later only when no package deployed.
     """
     ctx = source.ctx
     deltas = materialization.deltas
@@ -275,7 +330,10 @@ def _record_agent_plugin_target_skip(
     deltas["installed"] = 0
     ctx.package_deployed_files[dep_key] = []
     package_key = dep_ref.local_path if (dep_ref.is_local and dep_ref.local_path) else dep_key
-    ctx.diagnostics.warn(str(error), package=package_key)
+    ctx.diagnostics.agent_plugin_target_excluded(
+        _agent_plugin_target_skip_message(source, materialization, error),
+        package=package_key,
+    )
     return deltas
 
 

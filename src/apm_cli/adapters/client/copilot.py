@@ -55,11 +55,12 @@ class CopilotClientAdapter(MCPClientAdapter):
     # environment and the literal value is baked into the config file
     # (legacy pre-#1152 behaviour).
     #
-    # Subclasses (Cursor / Windsurf / OpenCode / Claude / Gemini) override
-    # this to ``False`` until their respective config formats are individually
-    # audited for runtime-substitution support. Critically, Claude Desktop's
-    # config format does NOT support runtime substitution -- it MUST keep
-    # resolving at install time.
+    # Subclasses (Windsurf / OpenCode / Claude / Gemini) override this to
+    # ``False`` until their respective config formats are individually audited
+    # for runtime-substitution support. Cursor has audited native
+    # ``${env:VAR}`` support. Critically, Claude Desktop's config format does
+    # NOT support runtime substitution -- it MUST keep resolving at install
+    # time.
     _supports_runtime_env_substitution: bool = True
 
     # Process-wide aggregation of legacy ``<VAR>`` offenders, keyed by
@@ -92,8 +93,9 @@ class CopilotClientAdapter(MCPClientAdapter):
 
         Args:
             registry_url (str, optional): URL of the MCP registry.
-                If not provided, uses the MCP_REGISTRY_URL environment variable
-                or falls back to the default GitHub registry.
+                If not provided, resolves the MCP_REGISTRY_URL env var,
+                then ``apm config set mcp-registry-url``, then the public
+                default (see ``registry.client.resolve_mcp_registry_url``).
             project_root: Project root context passed through to the base
                 adapter for scope-aware operations.
             user_scope: Whether the adapter should resolve user-scope config

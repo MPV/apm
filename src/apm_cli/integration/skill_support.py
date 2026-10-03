@@ -8,6 +8,27 @@ from pathlib import Path
 from apm_cli.core.deployment_state import MaterializationResult
 
 
+def build_skill_ownership_maps(lockfile_root: Path) -> tuple[dict[str, str], dict[str, str]]:
+    """Read sub-skill names and native destinations into full-identity ownership maps."""
+    from apm_cli.deps.lockfile import LockFile, get_lockfile_path
+
+    owned_by: dict[str, str] = {}
+    native_owners: dict[str, str] = {}
+    lockfile = LockFile.read(get_lockfile_path(lockfile_root))
+    if not lockfile:
+        return owned_by, native_owners
+    for dep in lockfile.get_package_dependencies():
+        unique_key = dep.get_unique_key()
+        for deployed_path in dep.deployed_files:
+            normalized = deployed_path.rstrip("/").replace("\\", "/")
+            skill_name = normalized.rsplit("/", 1)[-1]
+            owned_by[skill_name] = unique_key
+            # Another target's same-named skill cannot establish destination ownership.
+            if "/skills/" in normalized:
+                native_owners[normalized] = unique_key
+    return owned_by, native_owners
+
+
 def build_copy_ignore(
     *,
     skip_bin: bool = False,
@@ -56,6 +77,11 @@ def clean_orphaned_skills(
     get_lockfile_owned_agent_skills: Callable[[Path], set[str]],
 ) -> dict[str, int]:
     """Remove legacy-orphan skill directories without touching foreign agents."""
+    protected_names = set(installed_skill_names)
+    if project_root is not None:
+        from apm_cli.integration.lsp_integrator import LSPIntegrator
+
+        protected_names.update(LSPIntegrator.reserved_project_skill_names(skills_dir, project_root))
     files_removed = 0
     errors = 0
     lockfile_owned_skills: set[str] | None = None
@@ -63,7 +89,7 @@ def clean_orphaned_skills(
         lockfile_owned_skills = get_lockfile_owned_agent_skills(project_root)
 
     for skill_subdir in skills_dir.iterdir():
-        if not skill_subdir.is_dir() or skill_subdir.name in installed_skill_names:
+        if not skill_subdir.is_dir() or skill_subdir.name in protected_names:
             continue
         if lockfile_owned_skills is not None and skill_subdir.name not in lockfile_owned_skills:
             continue

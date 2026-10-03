@@ -11,8 +11,13 @@ how to install it:
 | `SKILL.md` (alone, or with apm.yml = HYBRID) | One skill bundle | Copy whole tree to `<target>/skills/<name>/` |
 | `skills/<name>/SKILL.md` | Many skills in one repo | Promote each nested skill to `<target>/skills/<name>/` |
 | `hooks/*.json` only | Harness hook package | Deploy hooks to the target's hooks directory |
-| `plugin.json` (no `$schema`) / `.claude-plugin/` | Claude plugin collection | Dissect via plugin artifact mapping |
-| `plugin.json` with an Agent Plugins `$schema` | Portable Agent Plugin | Acquired and locked as one opaque unit; registered when effective targets include Copilot and admission gates pass. Excluded targets create no native registration or loose primitive projection. APM does not require the runtime during lifecycle operations; loading requires supported Copilot CLI 1.0.81 or newer |
+| `plugin.json` (no `$schema`, or unrecognized `$schema`) / `.claude-plugin/` | Claude plugin collection | Dissect via plugin artifact mapping |
+| `plugin.json` with the recognized Agent Plugins `$schema` | Portable Agent Plugin | Acquired and locked as one opaque unit; registered when effective targets include Copilot and admission gates pass. Excluded targets create no native registration or loose primitive projection. APM does not require the runtime during lifecycle operations; loading requires supported Copilot CLI 1.0.81 or newer |
+
+When plugin signals coexist with an eligible `apm.yml`, the APM layout wins.
+An `apm.yml` is eligible when the root also has `.apm/` or the manifest
+declares APM or MCP dependencies. To intentionally select a plugin layout,
+omit `apm.yml` or keep it metadata-only, without `.apm/` or dependencies.
 
 For Agent Plugins with the same declared name, a direct dependency wins over a
 transitive dependency. APM refuses same-precedence collisions and does not
@@ -39,10 +44,11 @@ backfills one from the other:
 - `name` and `version` must be non-empty strings. Quote numeric versions so
   YAML does not parse them as numbers.
 
-Use the standard `$schema` key when authoring against normative OpenAPM v0.1:
-`https://microsoft.github.io/apm/specs/schemas/manifest-v0.1.schema.json`.
-Omitting `$schema` selects APM's current working draft. Unknown schema
-identities fail closed rather than being interpreted as the working draft.
+For alias-aware OpenAPM v0.1, amendment 0.1.41 selects
+`https://microsoft.github.io/apm/specs/schemas/manifest-v0.1.41.schema.json`
+as the `$schema` identity; see [schema status](../../../../../docs/src/content/docs/specs/openapm-v0.1.md#appendix-a-normative-json-schemas-inline).
+Omit `$schema` for APM's current working draft. Unknown identities fail closed;
+clients without 0.1.41 support cannot read that explicit opt-in.
 
 Populate both descriptions when you ship a HYBRID package. `apm pack`
 warns when `apm.yml.description` is missing so listings do not
@@ -93,6 +99,14 @@ Per-primitive scan paths for `apm install`:
 | agent | `.apm/agents/` | Yes: `*.agent.md` at root |
 | skill | `.apm/skills/<name>/` | Yes: `skills/<name>/` (SKILL_BUNDLE or MARKETPLACE_PLUGIN) |
 
+Own-project and Git-backed package installs skip symlinked agent source
+files and directories, including `.apm/agents -> ../agents`.
+`apm install` warns with the skipped source path. Use real files and
+directories under `.apm/agents/` or real `*.agent.md` files at root, then
+rerun `apm install`. Local-path dependencies (`./...` or `../...`) still work:
+contained symlinks are validated and copied as real files into
+`apm_modules/` before agent discovery.
+
 **Recommendation for marketplace publishers:** use `.apm/<type>/` for
 every primitive. This is the only layout that is symmetric between
 `apm pack` and `apm install`.
@@ -104,6 +118,9 @@ debug bridges, and other author-only servers in
 `devDependencies.mcp`. The root package receives both sections in its
 authoring environment; consumers of that package receive only
 `dependencies.mcp`, including when the package is nested transitively.
+Adding either kind of MCP dependency makes the root `apm.yml` eligible, so
+direct installs select the APM package layout over a co-located plugin
+manifest. Keep `apm.yml` metadata-only to preserve plugin selection.
 See [MCP dependency formats](dependencies.md#mcp-dependency-formats).
 
 ## Hook files
@@ -164,6 +181,9 @@ becomes `PostToolUse` in Claude) and rewrites path variables
 the correct target-specific form. Kiro materializes one JSON document per
 hook action under `.kiro/hooks/`.
 
+For Codex, APM wraps flat command entries in hook groups containing a
+nested `hooks` array in `.codex/hooks.json`.
+
 <!-- Keep this table synchronized with docs/src/content/docs/producer/author-primitives/hooks-and-commands.md. -->
 
 ### Session lifecycle event aliases
@@ -172,6 +192,7 @@ hook action under `.kiro/hooks/`.
 |----------------|---------------------|-------------------|
 | `SessionStart`, `sessionStart` | `sessionStart` | `SessionStart` |
 | `Stop`, `AgentStop`, `agentStop` | `agentStop` | `Stop` |
+| `UserPromptSubmit`, `userPromptSubmit`, `userPromptSubmitted` | `userPromptSubmitted` | `UserPromptSubmit` (native; the other two spellings are not renamed and will not fire) |
 
 Event names absent from this table are preserved unchanged. Only an unmapped
 camelCase or PascalCase name that conflicts with the target convention emits
@@ -326,15 +347,21 @@ tags: [security, validation]
 
 `applyTo` accepts a single glob (`"**/*.py"`) or a comma-separated list
 (`"**/src/**,**/api/**"`). The comma-separated string form is the recommended
-way to specify multiple patterns, as it is portably expanded into target-specific
-YAML arrays/lists (under `paths:` / `globs:` / `fileMatchPattern:`) across
-Claude, Cursor, Windsurf, Kiro, and Antigravity.
+way to specify multiple patterns, as it is portably expanded into
+target-specific YAML arrays/lists (under `paths:` / `globs:` /
+`fileMatchPattern:`) across Claude, Windsurf, Kiro, and Antigravity.
+For Cursor, APM emits one comma-joined scalar rather than a YAML list
+(`globs: **/src/**, **/api/**`). Ordinary patterns stay unquoted; unsafe
+characters are escaped. Descriptions keep printable non-ASCII text readable
+and are quoted when needed to preserve their value.
 
 A YAML sequence (e.g., `applyTo: ['**/*.py', '**/tests/**/*.py']`) is
 normalized to the same comma-separated OR expression for distributed
 placement and target-native installation. Use a sequence when its source
 readability matters. To match a literal comma in a filename, escape it as
-`\,`.
+`\,`. APM preserves pattern boundaries when re-joining, including the
+escape in Cursor's scalar. Cursor's documentation does not specify
+literal-comma matching; verify such patterns in your Cursor version.
 
 Commas inside brace alternation (`**/*.{css,scss}`) are part of the glob
 and are NOT separators -- only top-level commas split the list. On Copilot
@@ -544,6 +571,10 @@ An omitted key discovers root `skills/`; an explicit `[]` deploys none. If APM
 reports `plugin.json declares no deployable skills`, add the intended paths or
 remove the key to restore discovery.
 
+APM treats an unrecognized `plugin.json` `$schema` as an identification miss,
+not a rejection. It warns, then classifies by structure. Only the recognized
+Agent Plugins schema selects the portable Agent Plugin route.
+
 #### Shipping `bin/` executables (Claude Code only)
 
 A marketplace plugin may ship a root `bin/` directory of executable
@@ -681,7 +712,9 @@ registries:
     url: https://registry.example.com/apm/corp-main
 EOF
 
-# 3. Set a publish token (per-registry env var)
+# 3. Bind the destination in user config, then set a publish token
+apm config set registry.corp-main.url \
+  https://registry.example.com/apm/corp-main
 export APM_REGISTRY_TOKEN_CORP_MAIN=eyJ...
 
 # 4. Preview then publish
@@ -789,10 +822,12 @@ Schema rules:
 - `source` accepts three remote forms: `owner/repo` (default host),
   `host.tld/owner/repo` (non-default host shorthand), or
   `https://host.tld/path/to/repo[.git]` (full URL with two or more path
-  segments). Non-default hosts
-  resolve auth via the standard APM token chain
-  (`docs/getting-started/authentication.md`); the default-host token is
-  never forwarded.
+  segments). APM never embeds tokens in the source URL. During online
+  validation (`apm marketplace check`), source resolution follows the
+  standard auth rules in `docs/getting-started/authentication.md`:
+  default-host shorthand uses the configured default host, and explicit
+  hosts resolve through that host class's auth path. Offline checks
+  resolve no credentials.
 - `versioning.strategy` is optional. When present, it is consumed by
   the `apm pack --check-versions` release gate to enforce alignment
   between each local package's `version:` field and the marketplace

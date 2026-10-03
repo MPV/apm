@@ -2712,7 +2712,13 @@ class TestCodexFormatServerConfig:
         assert result["command"] in ("npx", "npm")
 
     def test_format_server_config_remote_with_headers(self, tmp_path: Path) -> None:
-        """HTTP remote with headers gets http_headers in config."""
+        """HTTP remote with headers carries them into the config.
+
+        A header whose value is exactly ``${VAR}`` belongs in
+        ``env_http_headers``: Codex reads the variable at server start, whereas
+        ``http_headers`` is documented as static values and would send the
+        placeholder as literal text.
+        """
         adapter = CodexClientAdapter(project_root=tmp_path)
         server_info = {
             "id": "abc",
@@ -2728,8 +2734,8 @@ class TestCodexFormatServerConfig:
         result = adapter._format_server_config(server_info)
         assert result is not None
         assert "url" in result
-        # Headers resolved (or passed through) should be in http_headers
-        assert "http_headers" in result
+        assert result["env_http_headers"] == {"Authorization": "MY_TOKEN"}
+        assert "http_headers" not in result
 
     def test_format_server_config_hybrid_prefers_package(self, tmp_path: Path) -> None:
         """Hybrid server (remote + packages) prefers packages."""
@@ -4016,7 +4022,7 @@ class TestDependencyTypes:
 
 
 class TestMCPConflictMatrix:
-    """Tests for MCP flag conflict validation (E1-E15)."""
+    """Tests for MCP flag conflict validation."""
 
     def _base_kwargs(self, **overrides) -> dict:
         """Return base valid kwargs for validate_mcp_conflicts."""
@@ -4030,7 +4036,6 @@ class TestMCPConflictMatrix:
             "headers": {},
             "mcp_version": None,
             "command_argv": None,
-            "global_": False,
             "only": None,
             "update": False,
             "any_transport_flag": False,
@@ -4101,15 +4106,6 @@ class TestMCPConflictMatrix:
 
         with pytest.raises(click.UsageError, match="cannot mix"):
             validate_mcp_conflicts(**self._base_kwargs(pre_dash_packages=["owner/repo"]))
-
-    def test_e2_global_with_mcp(self) -> None:
-        """--global with --mcp raises UsageError."""
-        import click
-
-        from apm_cli.install.mcp.conflicts import validate_mcp_conflicts
-
-        with pytest.raises(click.UsageError, match="--global is not supported"):
-            validate_mcp_conflicts(**self._base_kwargs(global_=True))
 
     def test_e3_only_apm_with_mcp(self) -> None:
         """--only apm with --mcp raises UsageError."""

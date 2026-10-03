@@ -14,7 +14,8 @@ from ...marketplace.errors import GitLsRemoteError, OfflineMissError
 from ...marketplace.ref_resolver import RefResolver
 from ...marketplace.semver import satisfies_range
 from ...marketplace.yml_schema import PackageEntry
-from ...utils.github_host import is_azure_devops_hostname
+from ...models.dependency.host_virtual import repository_owner
+from ...utils.github_host import default_host, is_azure_devops_hostname
 from . import (
     _CheckResult,
     _extract_tag_versions,
@@ -61,7 +62,7 @@ def _entry_coordinates(
     if source_base:
         source_url = f"{source_base}/{entry.source}"
         dependency = DependencyReference.parse(source_url)
-        org = dependency.ado_organization or dependency.repo_url.split("/", 1)[0]
+        org = dependency.ado_organization or repository_owner(dependency.repo_url)
         return dependency.host, dependency.repo_url, org, source_url
     return None, entry.source, None, None
 
@@ -89,17 +90,18 @@ def check(offline, verbose):
     # named a non-default host -- a host-prefixed source or a relative source
     # composed onto ``marketplace.sourceBase`` -- must be resolved against
     # that host with the host's (and, for sourceBase, the org's) token,
-    # exactly like ``apm pack`` does. Default-host entries keep the bare
-    # ambient-credential path.
+    # exactly like ``apm pack`` does. Default-host entries resolve the
+    # configured default host through the same authentication path.
     source_base = getattr(yml, "source_base", None)
     resolvers: dict[tuple[str | None, str | None], RefResolver] = {}
     auth_resolver: AuthResolver | None = None
 
     def _resolver_for(host: str | None, org: str | None) -> RefResolver:
         nonlocal auth_resolver
-        key = (host, org)
+        resolved_host = host or default_host() or "github.com"
+        key = (resolved_host, org)
         if key not in resolvers:
-            if host is None:
+            if host is None and offline:
                 resolvers[key] = RefResolver(offline=offline)
             else:
                 if auth_resolver is None and not offline:
@@ -107,14 +109,14 @@ def check(offline, verbose):
 
                     auth_resolver = AuthResolver()
                 auth = resolve_auth_for_host(
-                    host,
+                    resolved_host,
                     offline=offline,
                     org=org,
                     auth_resolver=auth_resolver,
                 )
                 resolvers[key] = RefResolver(
                     offline=offline,
-                    host=host,
+                    host=resolved_host,
                     token=auth.token if auth else None,
                     auth_scheme=auth.auth_scheme if auth else "basic",
                     git_env=(
@@ -123,7 +125,7 @@ def check(offline, verbose):
                         else None
                     ),
                     auth_resolver=auth_resolver,
-                    auth_target=host,
+                    auth_target=resolved_host,
                 )
         return resolvers[key]
 
@@ -155,7 +157,8 @@ def check(offline, verbose):
                 else:
                     remote_label = f"https://{host}/{owner_repo}.git" if host else owner_repo
                 logger.verbose_detail(
-                    f"Resolving {entry.name} via {host or 'default host'}: {remote_label}"
+                    f"Resolving {entry.name} via "
+                    f"{host or default_host() or 'github.com'}: {remote_label}"
                 )
                 refs = _resolver_for(host, org).list_remote_refs(owner_repo)
 
