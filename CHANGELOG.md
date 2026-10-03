@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A `generated_at` refresh now honours `SOURCE_DATE_EPOCH`, so automation that
+  re-derives the lockfile from a base revision on every run produces
+  byte-identical output instead of a fresh timestamp each time. An unset or
+  unparseable value still falls back to wall-clock time.
+
 ## [0.33.0] - 2026-10-02
 
 ### Added
